@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Семейный дневник — с неделями и архивом</title>
+    <title>Семейный дневник — сохранение дат</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
@@ -248,36 +248,69 @@
     }
 
     // ========== КОНВЕРТАЦИЯ СТАРЫХ ДАННЫХ ПРИ ВОССТАНОВЛЕНИИ ==========
+    // Конвертируем только если ключ содержит день недели, а не дату
+    function convertOldKeyToNew(oldKey, lesson) {
+        const parts = oldKey.split('_');
+        if (parts.length !== 3) return null;
+        
+        const child = parts[0];
+        const secondPart = parts[1];
+        const timestamp = parts[2];
+        
+        // Если второй параметр — дата в формате YYYY-MM-DD, оставляем как есть
+        if (isValidDateKey(secondPart)) {
+            return oldKey;
+        }
+        
+        // Если второй параметр — день недели, конвертируем
+        const dayIndex = dayNames.indexOf(secondPart);
+        if (dayIndex === -1) return null;
+        
+        // Пытаемся определить дату из timestamp
+        let date = null;
+        if (timestamp && !isNaN(parseInt(timestamp))) {
+            date = new Date(parseInt(timestamp));
+        }
+        
+        // Если дата определена, находим неделю этой даты
+        if (date && !isNaN(date.getTime())) {
+            const startOfWeek = new Date(date);
+            const dayOfWeek = date.getDay();
+            const diff = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+            startOfWeek.setDate(date.getDate() - diff);
+            startOfWeek.setHours(0,0,0,0);
+            const year = startOfWeek.getFullYear();
+            const month = String(startOfWeek.getMonth() + 1).padStart(2, '0');
+            const day = String(startOfWeek.getDate()).padStart(2, '0');
+            const weekKey = `${year}-${month}-${day}`;
+            const newDate = getDateForDayIndex(weekKey, dayIndex);
+            return `${child}_${newDate}_${timestamp}`;
+        }
+        
+        // Если дату определить не удалось, используем текущую неделю
+        const currentWeekKey = getCurrentWeekKey();
+        const newDate = getDateForDayIndex(currentWeekKey, dayIndex);
+        return `${child}_${newDate}_${timestamp}`;
+    }
+    
     function convertOldDataToNew(oldLessons) {
         const newLessons = {};
-        const currentWeekKey = getCurrentWeekKey();
+        let convertedCount = 0;
         
         for (let [oldKey, lesson] of Object.entries(oldLessons)) {
-            const parts = oldKey.split('_');
-            if (parts.length >= 3) {
-                const child = parts[0];
-                const secondPart = parts[1];
-                const timestamp = parts[2];
-                
-                // Если второй параметр — дата, оставляем как есть
-                if (isValidDateKey(secondPart)) {
-                    newLessons[oldKey] = lesson;
-                } 
-                // Если второй параметр — день недели, конвертируем в дату текущей недели
-                else if (dayNames.includes(secondPart)) {
-                    const dayIndex = dayNames.indexOf(secondPart);
-                    const newDate = getDateForDayIndex(currentWeekKey, dayIndex);
-                    const newKey = `${child}_${newDate}_${timestamp}`;
-                    newLessons[newKey] = lesson;
+            const newKey = convertOldKeyToNew(oldKey, lesson);
+            if (newKey) {
+                newLessons[newKey] = lesson;
+                if (newKey !== oldKey) {
+                    convertedCount++;
                     console.log(`Конвертировано: ${oldKey} -> ${newKey}`);
-                }
-                else {
-                    newLessons[oldKey] = lesson;
                 }
             } else {
                 newLessons[oldKey] = lesson;
             }
         }
+        
+        console.log(`Конвертировано уроков: ${convertedCount}`);
         return newLessons;
     }
 
@@ -674,8 +707,8 @@
         const averages = computeAveragesForChild(child);
         const allLessons = Object.entries(lessonsData).filter(([key]) => key.startsWith(child));
         let html = `<html><head><title>Оценки - ${child}</title><style>body{font-family:system-ui;padding:20px;} table{border-collapse:collapse;width:100%;} th,td{border:1px solid #cbd5e1;padding:8px;} th{background:#eef2ff;}</style></head><body>
-            <h1>📊 Дневник: ${child}</h1><h3>Средний балл</h3><tr><th>Предмет</th><th>Средний балл</th><th>Кол-во</th></tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>
-            <h3>Все оценки</h3><tr><th>Дата</th><th>Предмет</th><th>Тема</th><th>Оценка</th></tr>${allLessons.filter(([_,l]) => l.grade).map(([key,l]) => `<tr><td>${key.split('_')[1]}</td><td>${l.subject}</td><td>${l.topic}</td><td>${l.grade}</td></tr>`).join('')}</table></body></html>`;
+            <h1>📊 Дневник: ${child}</h1><h3>Средний балл</h3><table><th>Предмет</th><th>Средний балл</th><th>Кол-во</th><tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>
+            <h3>Все оценки</h3><table><th>Дата</th><th>Предмет</th><th>Тема</th><th>Оценка</th></tr>${allLessons.filter(([_,l]) => l.grade).map(([key,l]) => `<tr><td>${key.split('_')[1]}</td><td>${l.subject}</td><td>${l.topic}</td><td>${l.grade}</td></tr>`).join('')}</tr></body></html>`;
         const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
     }
     
@@ -683,7 +716,7 @@
         let html = `<html><head><title>Сводные оценки</title><style>body{font-family:system-ui;padding:20px;} table{border-collapse:collapse;width:100%;} th,td{border:1px solid #cbd5e1;padding:8px;} th{background:#eef2ff;}</style></head><body><h1>📊 Сводный отчёт</h1>`;
         for(let child of children) {
             const averages = computeAveragesForChild(child);
-            html += `<h2>${child}</h2><tr><th>Предмет</th><th>Средний балл</th><th>Кол-во</th></tr>${averages.map(a => `<td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>`;
+            html += `<h2>${child}</h2><table><tr><th>Предмет</th><th>Средний балл</th><th>Кол-во</th></tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>`;
         }
         html += `</body></html>`;
         const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
