@@ -7,32 +7,53 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <style>
-        *{box-sizing:border-box;font-family:system-ui}body{background:#f0f7ff;margin:0;padding:20px}.container{max-width:1400px;margin:0 auto}
-        .toolbar{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px;justify-content:flex-end}
-        button{background:white;border:1px solid #cbd5e1;padding:8px 16px;border-radius:40px;cursor:pointer}
-        button.primary{background:#1e4a76;color:white;border:none}
-        button.danger{background:#fee2e2;color:#991b1b}
-        .main-tabs{display:flex;gap:12px;margin-bottom:24px;border-bottom:2px solid #cbd5e1;padding-bottom:8px}
-        .main-tab{background:none;border:none;padding:10px 24px;cursor:pointer;border-radius:30px}
-        .main-tab.active{background:#1e4a76;color:white}
-        .child-tabs,.day-tabs{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px}
-        .tab-btn,.day-btn{background:#e2e8f0;border:none;padding:12px 24px;border-radius:40px;cursor:pointer}
-        .tab-btn.active,.day-btn.active{background:#1e4a76;color:white}
-        .card{background:white;border-radius:28px;padding:20px 24px;margin-bottom:28px}
-        .lesson-card{border-left:6px solid #1e4a76;margin-bottom:20px;padding:16px;background:#f9fafb;border-radius:20px}
-        .lesson-header{display:flex;justify-content:space-between;margin-bottom:12px}
-        .lesson-number{background:#1e4a76;color:white;padding:4px 12px;border-radius:30px}
-        .checks{display:flex;flex-wrap:wrap;gap:20px;margin:12px 0;background:#eef2ff;padding:12px;border-radius:20px}
-        .extra-link{background:#fef9e3;padding:12px;border-radius:16px;margin:12px 0;display:flex;gap:12px;flex-wrap:wrap}
-        .btn-small{background:#e2e8f0;padding:6px 12px;border-radius:30px}
-        .btn-primary{background:#1e4a76;color:white;padding:8px 16px;border-radius:30px;border:none;cursor:pointer}
-        .grade-input{width:70px;text-align:center;padding:6px;border-radius:20px;border:1px solid #cbd5e1}
-        .all-done-badge{background:#22c55e;color:white;border-radius:30px;padding:6px 14px}
-        .debt-item{background:#fee2e2;border-left:6px solid #ef4444;margin-bottom:12px;padding:12px;border-radius:16px;cursor:pointer}
-        .subject-tag{background:#e2e8f0;padding:6px 14px;border-radius:40px;display:inline-flex;align-items:center;gap:8px;margin:4px}
-        .hw-field{width:100%;padding:8px;border-radius:20px;border:1px solid #cbd5e1;margin-top:4px}
-        .clickable-link{color:#1e4a76;text-decoration:underline}
-        @media (max-width:700px){.checks{flex-direction:column;gap:8px}}
+        * { box-sizing: border-box; font-family: system-ui; }
+        body { background: #f0f7ff; margin: 0; padding: 20px; }
+        .container { max-width: 1300px; margin: 0 auto; }
+        
+        /* Кнопки */
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; justify-content: flex-end; }
+        .toolbar button { background: white; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 40px; cursor: pointer; }
+        .toolbar button.blue { background: #1e4a76; color: white; border: none; }
+        .toolbar button.red { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+        
+        /* Вкладки */
+        .main-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #cbd5e1; padding-bottom: 10px; }
+        .main-tab { background: none; border: none; padding: 10px 24px; font-size: 1rem; cursor: pointer; border-radius: 30px; }
+        .main-tab.active { background: #1e4a76; color: white; }
+        
+        /* Дети */
+        .child-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+        .child-btn { background: #e2e8f0; border: none; padding: 10px 20px; border-radius: 40px; cursor: pointer; }
+        .child-btn.active { background: #1e4a76; color: white; }
+        
+        /* Дни недели */
+        .day-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; }
+        .day-btn { background: none; border: none; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-size: 1rem; }
+        .day-btn.active { background: #1e4a76; color: white; }
+        
+        /* Карточки */
+        .card { background: white; border-radius: 24px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .lesson-card { border-left: 5px solid #1e4a76; margin-bottom: 15px; padding: 15px; background: #f9fafb; border-radius: 16px; }
+        .lesson-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+        .lesson-number { background: #1e4a76; color: white; padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; }
+        .checks { display: flex; flex-wrap: wrap; gap: 15px; margin: 10px 0; background: #eef2ff; padding: 10px; border-radius: 16px; }
+        .extra-link { background: #fef9e3; padding: 10px; border-radius: 16px; margin: 10px 0; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .extra-link input { flex: 2; min-width: 150px; padding: 8px; border-radius: 20px; border: 1px solid #cbd5e1; }
+        .btn-small { background: #e2e8f0; border: none; padding: 5px 12px; border-radius: 30px; cursor: pointer; }
+        .btn-primary { background: #1e4a76; color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; }
+        .grade-input { width: 70px; padding: 6px; border-radius: 20px; border: 1px solid #cbd5e1; text-align: center; }
+        .all-done { background: #22c55e; color: white; border-radius: 30px; padding: 5px 12px; font-size: 0.8rem; }
+        .debt-item { background: #fee2e2; border-left: 5px solid #ef4444; margin-bottom: 10px; padding: 12px; border-radius: 16px; cursor: pointer; }
+        .subject-tag { background: #e2e8f0; display: inline-block; padding: 5px 12px; border-radius: 30px; margin: 3px; }
+        .subject-tag button { background: none; border: none; color: #b91c1c; cursor: pointer; margin-left: 8px; }
+        .liza-task { background: #fce7f3; border-left: 5px solid #ec489a; margin-bottom: 10px; padding: 12px; border-radius: 16px; }
+        .hw-input { width: 100%; padding: 8px; border-radius: 20px; border: 1px solid #cbd5e1; margin-top: 5px; }
+        .stats { display: flex; flex-wrap: wrap; gap: 15px; }
+        .stat-card { background: #eef2ff; border-radius: 20px; padding: 10px 15px; min-width: 130px; }
+        .stat-card strong { font-size: 1.3rem; display: block; color: #1e4a76; }
+        .link { color: #1e4a76; text-decoration: underline; word-break: break-all; }
+        @media (max-width: 700px) { .checks { flex-direction: column; gap: 8px; } }
     </style>
 </head>
 <body>
@@ -40,42 +61,48 @@
     <h1>📚 Семейный дневник</h1>
 
     <div class="toolbar">
-        <button id="printChildBtn">🖨️ Оценки ребёнка</button>
+        <button id="printBtn">🖨️ Оценки ребёнка</button>
         <button id="printAllBtn">📑 Всех детей</button>
         <button id="backupBtn">💾 Резервная копия</button>
         <button id="restoreBtn">🔄 Восстановить</button>
-        <button id="clearAllBtn" class="danger">⚠️ Очистить всё</button>
-        <button id="newWeekBtn" class="primary">🔄 Новая неделя</button>
-        <input type="file" id="restoreFileInput" style="display:none">
+        <button id="newWeekBtn" class="blue">🔄 НОВАЯ НЕДЕЛЯ</button>
+        <button id="clearBtn" class="red">⚠️ Очистить всё</button>
+        <input type="file" id="fileInput" style="display:none">
     </div>
 
     <div class="main-tabs">
-        <button class="main-tab active" data-main="diary">📖 Дневник</button>
-        <button class="main-tab" data-main="debts">⚠️ Задолженности</button>
+        <button class="main-tab active" data-tab="diary">📖 Дневник</button>
+        <button class="main-tab" data-tab="debts">⚠️ Задолженности</button>
     </div>
 
     <div id="diaryTab">
         <div class="child-tabs" id="childTabs"></div>
         
         <div class="card">
-            <h3>📚 Предметы <button id="addSubjectBtn" class="btn-small">+ Добавить</button></h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <h3>📚 Предметы</h3>
+                <button id="addSubjectBtn" class="btn-small">+ Добавить предмет</button>
+            </div>
             <div id="subjectsList"></div>
         </div>
 
-        <div class="card" id="gradesCard">
+        <div class="card">
             <h3>📊 Средний балл</h3>
-            <div id="averageStats"></div>
+            <div id="stats" class="stats"></div>
         </div>
 
         <div class="day-tabs" id="dayTabs"></div>
 
-        <div class="card" id="scheduleCard">
-            <div id="lessonsContainer">Загрузка...</div>
+        <div class="card" id="schedule">
+            <div id="lessonsList">Загрузка...</div>
         </div>
 
-        <div class="card" id="lizaTasksCard" style="display:none">
-            <h3>📝 Задания от Лизы <button id="addLizaTaskBtn" class="btn-small">+ Добавить</button></h3>
-            <div id="lizaTasksContainer"></div>
+        <div class="card" id="lizaBlock" style="display:none">
+            <div style="display: flex; justify-content: space-between;">
+                <h3>📝 Задания от Лизы</h3>
+                <button id="addLizaBtn" class="btn-small">+ Добавить</button>
+            </div>
+            <div id="lizaList"></div>
         </div>
     </div>
 
@@ -89,348 +116,413 @@
 </div>
 
 <script>
-const firebaseConfig = {
-    apiKey: "AIzaSyCfvOCcdH2PJciunG92IrWMcVvgVJfxZ88",
-    authDomain: "family-diary-2df22.firebaseapp.com",
-    databaseURL: "https://family-diary-2df22-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "family-diary-2df22",
-    storageBucket: "family-diary-2df22.firebasestorage.app",
-    messagingSenderId: "484179649597",
-    appId: "1:484179649597:web:21234c1f5b65880ecff654"
-};
+    // ========== НАСТРОЙКИ FIREBASE ==========
+    const firebaseConfig = {
+        apiKey: "AIzaSyCfvOCcdH2PJciunG92IrWMcVvgVJfxZ88",
+        authDomain: "family-diary-2df22.firebaseapp.com",
+        databaseURL: "https://family-diary-2df22-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "family-diary-2df22",
+        storageBucket: "family-diary-2df22.firebasestorage.app",
+        messagingSenderId: "484179649597",
+        appId: "1:484179649597:web:21234c1f5b65880ecff654"
+    };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-const children = ["Эльвина", "Эмилия", "Емельян", "Ермолай", "Эва"];
-const dayNames = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"];
+    // ========== ДАННЫЕ ==========
+    const children = ["Эльвина", "Эмилия", "Емельян", "Ермолай", "Эва"];
+    const days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"];
+    
+    let currentChild = "Эльвина";
+    let currentDay = "Понедельник";
+    let currentTab = "diary";
+    
+    let lessons = {};     // ключ: "Ребёнок_День_айди"
+    let lizaTasks = [];
+    let subjects = ["Математика", "Русский язык", "Чтение", "Окружающий мир", "Английский язык"];
 
-let currentChild = "Эльвина";
-let currentDay = "Понедельник";
-let currentMainTab = "diary";
-
-let lessonsData = {};
-let lizaTasks = [];
-let subjects = ["Математика", "Русский язык", "Чтение", "Окружающий мир", "Английский язык"];
-
-function loadAllData() {
-    db.ref('lessons').on('value', (snap) => { lessonsData = snap.val() || {}; renderAll(); });
-    db.ref('lizaTasks').on('value', (snap) => { lizaTasks = snap.val() || []; renderLizaTasks(); renderLizaTasksVisibility(); });
-    db.ref('subjects').on('value', (snap) => { if(snap.val()) subjects = snap.val(); renderSubjectsList(); });
-}
-
-function getLessonsForDay(child, day) {
-    const result = [];
-    for(let [key, lesson] of Object.entries(lessonsData)) {
-        if(key.startsWith(`${child}_${day}_`)) result.push({ key, lesson });
+    // ========== ЗАГРУЗКА ==========
+    function loadData() {
+        db.ref('lessons').on('value', s => { lessons = s.val() || {}; render(); });
+        db.ref('lizaTasks').on('value', s => { lizaTasks = s.val() || []; renderLiza(); });
+        db.ref('subjects').on('value', s => { if(s.val()) subjects = s.val(); renderSubjects(); });
     }
-    return result.sort((a,b) => (a.lesson.lessonNumber || 0) - (b.lesson.lessonNumber || 0));
-}
 
-function saveLesson(key, data) { db.ref(`lessons/${key}`).set(data); }
-function deleteLessonFromDB(key) { db.ref(`lessons/${key}`).remove(); }
-function saveLizaTask(taskId, data) { db.ref(`lizaTasks/${taskId}`).set(data); }
-
-function linkify(text) {
-    if(!text) return "—";
-    return text.replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank" class="clickable-link">${url}</a>`);
-}
-
-function isAllDone(lesson) {
-    return lesson.watched && lesson.homeworkBookDone && lesson.homeworkWorkbookDone;
-}
-
-function getDebtsForChild(child) {
-    const debts = [];
-    for(let [key, lesson] of Object.entries(lessonsData)) {
-        if(key.startsWith(child) && !isAllDone(lesson)) {
-            const parts = key.split('_');
-            debts.push({ lessonKey: key, day: parts[1], subject: lesson.subject, topic: lesson.topic, 
-                lessonNumber: lesson.lessonNumber, missingWatched: !lesson.watched, 
-                missingBook: !lesson.homeworkBookDone, missingWorkbook: !lesson.homeworkWorkbookDone });
-        }
-    }
-    return debts;
-}
-
-function goToLesson(lessonKey) {
-    const parts = lessonKey.split('_');
-    switchMainTab('diary');
-    currentChild = parts[0];
-    currentDay = parts[1];
-    renderAll();
-    setTimeout(() => {
-        const el = document.querySelector(`.lesson-card[data-id="${parts[2]}"]`);
-        if(el) { el.scrollIntoView({ behavior: 'smooth' }); el.style.background = '#fef3c7'; setTimeout(() => el.style.background = '', 2000); }
-    }, 300);
-}
-
-function renderDebts() {
-    const container = document.getElementById('debtsList');
-    if(!container) return;
-    const debts = getDebtsForChild(currentChild);
-    if(debts.length === 0) { container.innerHTML = '<div style="background:#dcfce7;padding:20px;border-radius:20px;">✅ Нет задолженностей!</div>'; return; }
-    container.innerHTML = debts.map(d => `<div class="debt-item" onclick="goToLesson('${d.lessonKey}')">
-        <div><strong>📅 ${d.day}</strong> | <strong>${escapeHtml(d.subject)}</strong> | Урок ${d.lessonNumber}</div>
-        <div>📚 ${escapeHtml(d.topic)}</div>
-        <div>${d.missingWatched ? '❌ Не посмотрен урок ' : ''}${d.missingBook ? '❌ ДЗ учебник ' : ''}${d.missingWorkbook ? '❌ ДЗ тетрадь' : ''}</div>
-        <div style="font-size:0.8rem;color:#1e4a76;">🔗 Нажмите →</div>
-    </div>`).join('');
-}
-
-function addSubject(name) {
-    if(!name.trim() || subjects.includes(name.trim())) return;
-    subjects.push(name.trim());
-    db.ref('subjects').set(subjects);
-}
-
-function removeSubject(name) {
-    if(confirm(`Удалить "${name}"?`)) { subjects = subjects.filter(s => s !== name); db.ref('subjects').set(subjects); }
-}
-
-function renderSubjectsList() {
-    const container = document.getElementById('subjectsList');
-    if(!container) return;
-    container.innerHTML = subjects.map(s => `<span class="subject-tag">📖 ${escapeHtml(s)} <button onclick="removeSubject('${escapeHtml(s)}')">✖️</button></span>`).join('');
-    if(subjects.length === 0) container.innerHTML = '<p>Нет предметов. Добавьте первый!</p>';
-}
-
-function addNewLesson() {
-    const lessonId = Date.now().toString();
-    const num = getLessonsForDay(currentChild, currentDay).length + 1;
-    saveLesson(`${currentChild}_${currentDay}_${lessonId}`, {
-        lessonNumber: num, subject: subjects[0] || "Новый предмет", topic: "Тема урока",
-        homeworkBook: "", homeworkWorkbook: "", grade: null, watched: false,
-        homeworkBookDone: false, homeworkWorkbookDone: false, extraLink: "", extraLinkDone: false
-    });
-}
-
-function updateLessonField(lessonId, field, value) {
-    db.ref(`lessons/${currentChild}_${currentDay}_${lessonId}/${field}`).set(value);
-}
-
-function deleteLesson(lessonId) {
-    if(confirm('Удалить урок?')) deleteLessonFromDB(`${currentChild}_${currentDay}_${lessonId}`);
-}
-
-function computeAverages() {
-    const result = {};
-    for(let child of children) {
-        const grades = {};
-        for(let [key, lesson] of Object.entries(lessonsData)) {
-            if(key.startsWith(child) && lesson.grade && typeof lesson.grade === 'number') {
-                if(!grades[lesson.subject]) grades[lesson.subject] = [];
-                grades[lesson.subject].push(lesson.grade);
+    function getLessons() {
+        const result = [];
+        for(let [key, val] of Object.entries(lessons)) {
+            if(key.startsWith(`${currentChild}_${currentDay}_`)) {
+                result.push({ id: key.split('_')[2], ...val });
             }
         }
-        result[child] = Object.entries(grades).map(([s, g]) => ({ subject: s, avg: (g.reduce((a,b)=>a+b,0)/g.length).toFixed(2), count: g.length }));
+        return result.sort((a,b) => (a.lessonNumber||0) - (b.lessonNumber||0));
     }
-    return result;
-}
 
-function renderGrades() {
-    const container = document.getElementById('averageStats');
-    if(!container) return;
-    const avgs = computeAverages();
-    container.innerHTML = children.map(c => `<div class="stat-card"><strong>${c}</strong>${avgs[c].map(s => `<div>${s.subject}: ${s.avg} (${s.count})</div>`).join('') || '<div>Нет оценок</div>'}</div>`).join('');
-}
+    // ========== СОХРАНЕНИЕ ==========
+    function saveLesson(id, data) { db.ref(`lessons/${currentChild}_${currentDay}_${id}`).set(data); }
+    function deleteLesson(id) { db.ref(`lessons/${currentChild}_${currentDay}_${id}`).remove(); }
+    function saveLizaTask(id, data) { db.ref(`lizaTasks/${id}`).set(data); }
+    function deleteLizaTask(id) { db.ref(`lizaTasks/${id}`).remove(); }
 
-function renderSchedule() {
-    const container = document.getElementById('lessonsContainer');
-    if(!container) return;
-    const lessons = getLessonsForDay(currentChild, currentDay);
-    if(lessons.length === 0) {
-        container.innerHTML = `<p>Нет уроков. <button class="btn-primary" id="addFirstLessonBtn">+ Добавить</button></p>`;
-        document.getElementById('addFirstLessonBtn')?.addEventListener('click', addNewLesson);
-        return;
+    // ========== УРОКИ ==========
+    function addLesson() {
+        const id = Date.now().toString();
+        const num = getLessons().length + 1;
+        saveLesson(id, {
+            lessonNumber: num,
+            subject: subjects[0] || "Новый предмет",
+            topic: "Тема урока",
+            homeworkBook: "",
+            homeworkWorkbook: "",
+            grade: null,
+            watched: false,
+            homeworkBookDone: false,
+            homeworkWorkbookDone: false,
+            extraLink: "",
+            extraLinkDone: false
+        });
     }
-    container.innerHTML = lessons.map(({key, lesson}) => {
-        const lessonId = key.split('_').pop();
-        const allDone = isAllDone(lesson);
-        return `<div class="lesson-card" data-id="${lessonId}">
-            <div class="lesson-header">
-                <div><span class="lesson-number">Урок ${lesson.lessonNumber}</span>
-                    <select data-field="subject" data-id="${lessonId}">${subjects.map(s => `<option ${lesson.subject===s?'selected':''}>${escapeHtml(s)}</option>`).join('')}</select>
+
+    function updateLesson(id, field, value) {
+        db.ref(`lessons/${currentChild}_${currentDay}_${id}/${field}`).set(value);
+    }
+
+    function isAllDone(l) {
+        return l.watched && l.homeworkBookDone && l.homeworkWorkbookDone;
+    }
+
+    function renderLessons() {
+        const container = document.getElementById('lessonsList');
+        const lessonsList = getLessons();
+        
+        if(lessonsList.length === 0) {
+            container.innerHTML = `<p>Нет уроков. <button class="btn-primary" onclick="addLesson()">+ Добавить урок</button></p>`;
+            return;
+        }
+        
+        container.innerHTML = lessonsList.map(l => {
+            const allDone = isAllDone(l);
+            return `
+                <div class="lesson-card">
+                    <div class="lesson-header">
+                        <div>
+                            <span class="lesson-number">Урок ${l.lessonNumber}</span>
+                            <select onchange="updateLesson('${l.id}', 'subject', this.value)">
+                                ${subjects.map(s => `<option ${l.subject===s ? 'selected' : ''}>${escape(s)}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center">
+                            <input type="number" class="grade-input" placeholder="Оценка" value="${l.grade || ''}" onchange="updateLesson('${l.id}', 'grade', this.value)">
+                            ${allDone ? '<span class="all-done">✅ Всё готово!</span>' : ''}
+                        </div>
+                    </div>
+                    <div><strong>Тема:</strong> <div>${linkify(l.topic)}</div>
+                        <input type="text" value="${escape(l.topic)}" style="width:100%; padding:8px; border-radius:20px; margin-top:5px" oninput="debounceSave('${l.id}', 'topic', this.value)">
+                    </div>
+                    <div class="checks">
+                        <label><input type="checkbox" ${l.watched ? 'checked' : ''} onchange="updateLesson('${l.id}', 'watched', this.checked)"> 📺 Урок посмотрел</label>
+                        <label><input type="checkbox" ${l.homeworkBookDone ? 'checked' : ''} onchange="updateLesson('${l.id}', 'homeworkBookDone', this.checked)"> 📚 ДЗ в учебнике</label>
+                        <label><input type="checkbox" ${l.homeworkWorkbookDone ? 'checked' : ''} onchange="updateLesson('${l.id}', 'homeworkWorkbookDone', this.checked)"> 📖 ДЗ в тетради</label>
+                    </div>
+                    <div><strong>📚 ДЗ учебник:</strong><br><div>${linkify(l.homeworkBook)}</div>
+                        <input class="hw-input" value="${escape(l.homeworkBook)}" oninput="debounceSave('${l.id}', 'homeworkBook', this.value)">
+                    </div>
+                    <div><strong>📖 ДЗ раб.тетрадь:</strong><br><div>${linkify(l.homeworkWorkbook)}</div>
+                        <input class="hw-input" value="${escape(l.homeworkWorkbook)}" oninput="debounceSave('${l.id}', 'homeworkWorkbook', this.value)">
+                    </div>
+                    <div class="extra-link">
+                        <span>🔗 Доп. материал:</span>
+                        <div style="flex:2">${linkify(l.extraLink)}</div>
+                        <input placeholder="Ссылка" value="${escape(l.extraLink)}" style="flex:2" oninput="debounceSave('${l.id}', 'extraLink', this.value)">
+                        <label><input type="checkbox" ${l.extraLinkDone ? 'checked' : ''} onchange="updateLesson('${l.id}', 'extraLinkDone', this.checked)"> Выполнил</label>
+                    </div>
+                    <button class="btn-small" onclick="if(confirm('Удалить урок?')) deleteLesson('${l.id}')">🗑️ Удалить</button>
                 </div>
-                <div><input type="number" class="grade-input" placeholder="Оценка" value="${lesson.grade||''}" data-field="grade" data-id="${lessonId}">
-                ${allDone ? '<span class="all-done-badge">✅ Всё готово!</span>' : ''}</div>
-            </div>
-            <div><strong>Тема:</strong> <div>${linkify(lesson.topic)}</div>
-                <input type="text" value="${escapeHtml(lesson.topic)}" style="width:100%;padding:8px;border-radius:20px;margin-top:8px" data-field="topic" data-id="${lessonId}"></div>
-            <div class="checks">
-                <label><input type="checkbox" data-field="watched" data-id="${lessonId}" ${lesson.watched ? 'checked' : ''}> 📺 Урок посмотрел</label>
-                <label><input type="checkbox" data-field="homeworkBookDone" data-id="${lessonId}" ${lesson.homeworkBookDone ? 'checked' : ''}> 📚 ДЗ учебник</label>
-                <label><input type="checkbox" data-field="homeworkWorkbookDone" data-id="${lessonId}" ${lesson.homeworkWorkbookDone ? 'checked' : ''}> 📖 ДЗ тетрадь</label>
-            </div>
-            <div><strong>📚 ДЗ учебник:</strong><br><div>${linkify(lesson.homeworkBook)}</div>
-                <input class="hw-field" value="${escapeHtml(lesson.homeworkBook)}" data-field="homeworkBook" data-id="${lessonId}"></div>
-            <div><strong>📖 ДЗ тетрадь:</strong><br><div>${linkify(lesson.homeworkWorkbook)}</div>
-                <input class="hw-field" value="${escapeHtml(lesson.homeworkWorkbook)}" data-field="homeworkWorkbook" data-id="${lessonId}"></div>
-            <div class="extra-link">
-                <span>🔗 Доп. материал:</span>
-                <div style="flex:2">${linkify(lesson.extraLink)}</div>
-                <input placeholder="Ссылка" value="${escapeHtml(lesson.extraLink)}" style="flex:2" data-field="extraLink" data-id="${lessonId}">
-                <label><input type="checkbox" data-field="extraLinkDone" data-id="${lessonId}" ${lesson.extraLinkDone ? 'checked' : ''}> Выполнил</label>
-            </div>
-            <button class="btn-small" onclick="deleteLesson('${lessonId}')">🗑️ Удалить</button>
-        </div>`;
-    }).join('') + `<div style="margin-top:16px"><button class="btn-primary" id="addLessonBtn">+ Добавить урок</button></div>`;
+            `;
+        }).join('') + `<div style="margin-top:15px"><button class="btn-primary" onclick="addLesson()">+ Добавить урок</button></div>`;
+    }
+
+    let debounceTimer;
+    function debounceSave(id, field, value) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => updateLesson(id, field, value), 500);
+    }
+
+    function linkify(text) {
+        if(!text) return "—";
+        return text.replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank" class="link">${url}</a>`);
+    }
+
+    // ========== ПРЕДМЕТЫ ==========
+    function addSubject() {
+        let name = prompt("Название предмета:");
+        if(name && name.trim() && !subjects.includes(name.trim())) {
+            subjects.push(name.trim());
+            db.ref('subjects').set(subjects);
+        }
+    }
     
-    document.querySelectorAll('[data-field]').forEach(el => {
-        const field = el.dataset.field;
-        const id = el.dataset.id;
-        if(el.type === 'checkbox') el.onchange = (e) => updateLessonField(id, field, e.target.checked);
-        else if(el.tagName === 'SELECT') el.onchange = (e) => updateLessonField(id, field, e.target.value);
-        else el.oninput = (e) => { clearTimeout(window.t); window.t = setTimeout(() => updateLessonField(id, field, e.target.value), 500); };
-    });
-    document.getElementById('addLessonBtn')?.addEventListener('click', addNewLesson);
-}
-
-function addLizaTask() {
-    const id = Date.now().toString();
-    saveLizaTask(id, { id, child: currentChild, subject: "Новый предмет", topic: "Что сделать", completed: false });
-}
-
-function updateLizaTask(id, field, val) { db.ref(`lizaTasks/${id}/${field}`).set(val); }
-function deleteLizaTask(id) { db.ref(`lizaTasks/${id}`).remove(); }
-
-function renderLizaTasks() {
-    const container = document.getElementById('lizaTasksContainer');
-    if(!container) return;
-    const tasks = (Array.isArray(lizaTasks) ? lizaTasks : Object.values(lizaTasks)).filter(t => t?.child === currentChild).sort((a,b)=>b.id-a.id);
-    if(tasks.length === 0) { container.innerHTML = '<p>Нет заданий от Лизы</p>'; return; }
-    container.innerHTML = tasks.map(t => `<div class="liza-task">
-        <div style="display:flex;justify-content:space-between"><strong>${escapeHtml(t.subject)}</strong><button class="btn-small" onclick="deleteLizaTask('${t.id}')">🗑️</button></div>
-        <div><strong>Задание:</strong> <div>${linkify(t.topic)}</div><input type="text" value="${escapeHtml(t.topic)}" style="width:80%" data-update="${t.id}" data-field="topic"></div>
-        <label><input type="checkbox" data-check="${t.id}" ${t.completed ? 'checked' : ''}> ✅ Выполнено</label>
-    </div>`).join('');
-    document.querySelectorAll('[data-update]').forEach(inp => inp.onchange = (e) => updateLizaTask(inp.dataset.update, 'topic', e.target.value));
-    document.querySelectorAll('[data-check]').forEach(ch => ch.onchange = (e) => updateLizaTask(ch.dataset.check, 'completed', e.target.checked));
-}
-
-function renderLizaTasksVisibility() {
-    const card = document.getElementById('lizaTasksCard');
-    if(card) card.style.display = (currentChild === "Эльвина" || currentChild === "Эмилия") ? 'block' : 'none';
-}
-
-function printGradesForChild(child) {
-    const avgs = computeAverages()[child];
-    const lessons = Object.entries(lessonsData).filter(([k]) => k.startsWith(child));
-    let html = `<html><head><title>Оценки - ${child}</title><style>table{border-collapse:collapse;width:100%} th,td{border:1px solid #ccc;padding:8px}</style></head><body>
-        <h1>📊 Дневник: ${child}</h1><h3>Средний балл</h3></table><th>Предмет</th><th>Средний</th><th>Кол-во</th></tr>${avgs.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')} </>
-        <h3>Все оценки</h3><table><th>День</th><th>Предмет</th><th>Тема</th><th>Оценка</th></tr>${lessons.filter(([_,l]) => l.grade).map(([k,l]) => `<tr><td>${k.split('_')[1]}</td><td>${l.subject}</td><td>${l.topic}</td><td>${l.grade}</td></tr>`).join('')} </>
-    </body></html>`;
-    const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
-}
-
-function printAllChildren() {
-    let html = `<html><head><title>Сводные оценки</title><style>table{border-collapse:collapse;width:100%} th,td{border:1px solid #ccc;padding:8px}</style></head><body><h1>📊 Сводный отчёт</h1>`;
-    for(let child of children) {
-        const avgs = computeAverages()[child];
-        html += `<h2>${child}</h2><table><th>Предмет</th><th>Средний</th><th>Кол-во</th></tr>${avgs.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')} </>
-        `;
+    function removeSubject(name) {
+        if(confirm(`Удалить "${name}"?`)) {
+            subjects = subjects.filter(s => s !== name);
+            db.ref('subjects').set(subjects);
+        }
     }
-    html += `</body></html>`;
-    const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
-}
-
-function backupData() {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify({ lessons: lessonsData, lizaTasks, subjects }, null, 2)], {type:'application/json'}));
-    a.download = `family_backup_${new Date().toISOString().slice(0,19)}.json`;
-    a.click();
-}
-
-function restoreData(file) {
-    const reader = new FileReader();
-    reader.onload = e => {
-        try {
-            const d = JSON.parse(e.target.result);
-            Promise.all([
-                d.lessons && db.ref('lessons').set(d.lessons),
-                d.lizaTasks && db.ref('lizaTasks').set(d.lizaTasks),
-                d.subjects && db.ref('subjects').set(d.subjects)
-            ]).then(() => { alert('✅ Восстановлено!'); location.reload(); });
-        } catch(err) { alert('Ошибка файла'); }
-    };
-    reader.readAsText(file);
-}
-
-function clearAllData() {
-    if(confirm('Удалить ВСЕ данные?')) {
-        Promise.all([db.ref('lessons').set({}), db.ref('lizaTasks').set([]), db.ref('subjects').set(subjects)])
-            .then(() => { alert('✅ Очищено'); location.reload(); });
+    
+    function renderSubjects() {
+        const container = document.getElementById('subjectsList');
+        if(!container) return;
+        if(subjects.length === 0) { container.innerHTML = '<p>Нет предметов. Добавьте первый!</p>'; return; }
+        container.innerHTML = subjects.map(s => `<span class="subject-tag">📖 ${escape(s)} <button onclick="removeSubject('${escape(s)}')">✖️</button></span>`).join('');
     }
-}
 
-function startNewWeek() {
-    if(confirm('Начать новую неделю? Все уроки будут удалены. Сделайте резервную копию перед этим!')) {
-        db.ref('lessons').set({}).then(() => { alert('✅ Новая неделя!'); location.reload(); });
+    // ========== ОЦЕНКИ ==========
+    function getAverages() {
+        const result = {};
+        for(let child of children) {
+            const grades = {};
+            for(let [key, lesson] of Object.entries(lessons)) {
+                if(key.startsWith(child) && lesson.grade && !isNaN(lesson.grade)) {
+                    const subj = lesson.subject;
+                    if(!grades[subj]) grades[subj] = [];
+                    grades[subj].push(Number(lesson.grade));
+                }
+            }
+            result[child] = Object.entries(grades).map(([s, arr]) => ({
+                subject: s,
+                avg: (arr.reduce((a,b)=>a+b,0) / arr.length).toFixed(2),
+                count: arr.length
+            }));
+        }
+        return result;
     }
-}
+    
+    function renderStats() {
+        const container = document.getElementById('stats');
+        if(!container) return;
+        const avgs = getAverages();
+        container.innerHTML = children.map(c => `
+            <div class="stat-card">
+                <strong>${c}</strong>
+                ${avgs[c].length ? avgs[c].map(s => `<div>${s.subject}: ${s.avg} (${s.count})</div>`).join('') : '<div>Нет оценок</div>'}
+            </div>
+        `).join('');
+    }
 
-function renderChildTabs() {
-    const c = document.getElementById('childTabs');
-    if(c) c.innerHTML = children.map(ch => `<button class="tab-btn ${ch===currentChild?'active':''}" data-child="${ch}">${ch}</button>`).join('');
-    document.querySelectorAll('[data-child]').forEach(btn => btn.onclick = () => { currentChild = btn.dataset.child; renderAll(); });
-}
-
-function renderDayTabs() {
-    const c = document.getElementById('dayTabs');
-    if(c) c.innerHTML = dayNames.map(d => `<button class="day-btn ${d===currentDay?'active':''}" data-day="${d}">${d}</button>`).join('');
-    document.querySelectorAll('[data-day]').forEach(btn => btn.onclick = () => { currentDay = btn.dataset.day; renderAll(); });
-}
-
-function renderDebtsChildTabs() {
-    const c = document.getElementById('debtsChildTabs');
-    if(c) c.innerHTML = children.map(ch => `<button class="tab-btn ${ch===currentChild?'active':''}" data-dchild="${ch}">${ch}</button>`).join('');
-    document.querySelectorAll('[data-dchild]').forEach(btn => btn.onclick = () => { currentChild = btn.dataset.dchild; renderDebts(); });
-}
-
-function switchMainTab(tab) {
-    currentMainTab = tab;
-    document.getElementById('diaryTab').style.display = tab === 'diary' ? 'block' : 'none';
-    document.getElementById('debtsTab').style.display = tab === 'debts' ? 'block' : 'none';
-    document.querySelectorAll('.main-tab').forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`.main-tab[data-main="${tab}"]`).classList.add('active');
-    if(tab === 'debts') { renderDebtsChildTabs(); renderDebts(); }
-    else renderAll();
-}
-
-function renderAll() {
-    if(currentMainTab === 'diary') {
-        renderChildTabs();
+    // ========== ЗАДОЛЖЕННОСТИ ==========
+    function getDebts() {
+        const debts = [];
+        for(let [key, lesson] of Object.entries(lessons)) {
+            if(key.startsWith(currentChild) && !isAllDone(lesson)) {
+                const parts = key.split('_');
+                debts.push({ id: parts[2], day: parts[1], ...lesson });
+            }
+        }
+        return debts;
+    }
+    
+    function goToLesson(lessonId, day) {
+        currentDay = day;
+        switchTab('diary');
         renderDayTabs();
-        renderSchedule();
-        renderLizaTasksVisibility();
-        renderGrades();
-        renderSubjectsList();
+        renderLessons();
+        setTimeout(() => {
+            const el = document.querySelector(`.lesson-card:has([onclick*="${lessonId}"])`);
+            if(el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
     }
-}
+    
+    function renderDebts() {
+        const container = document.getElementById('debtsList');
+        if(!container) return;
+        const debts = getDebts();
+        if(debts.length === 0) {
+            container.innerHTML = '<div style="background:#dcfce7; padding:20px; border-radius:20px;">✅ Нет задолженностей!</div>';
+            return;
+        }
+        container.innerHTML = debts.map(d => `
+            <div class="debt-item" onclick="goToLesson('${d.id}', '${d.day}')">
+                <div><strong>📅 ${d.day}</strong> | <strong>${escape(d.subject)}</strong> | Урок ${d.lessonNumber}</div>
+                <div>📚 ${escape(d.topic)}</div>
+                <div>${!d.watched ? '❌ Не посмотрен урок ' : ''}${!d.homeworkBookDone ? '❌ ДЗ учебник ' : ''}${!d.homeworkWorkbookDone ? '❌ ДЗ тетрадь' : ''}</div>
+                <div style="font-size:0.8rem; color:#1e4a76;">🔗 Нажмите, чтобы перейти</div>
+            </div>
+        `).join('');
+    }
 
-function escapeHtml(str) { if(!str) return ""; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    // ========== ЗАДАНИЯ ОТ ЛИЗЫ ==========
+    function addLizaTask() {
+        const id = Date.now().toString();
+        saveLizaTask(id, { id, child: currentChild, subject: "Новый предмет", topic: "Что сделать", completed: false });
+    }
+    
+    function updateLizaTask(id, field, val) { db.ref(`lizaTasks/${id}/${field}`).set(val); }
+    
+    function renderLiza() {
+        const container = document.getElementById('lizaList');
+        if(!container) return;
+        const tasks = (Array.isArray(lizaTasks) ? lizaTasks : Object.values(lizaTasks)).filter(t => t?.child === currentChild).sort((a,b)=>b.id - a.id);
+        if(tasks.length === 0) { container.innerHTML = '<p>Нет заданий от Лизы</p>'; return; }
+        container.innerHTML = tasks.map(t => `
+            <div class="liza-task">
+                <div style="display:flex; justify-content:space-between; flex-wrap:wrap;">
+                    <strong>${escape(t.subject)}</strong>
+                    <button class="btn-small" onclick="deleteLizaTask('${t.id}')">🗑️</button>
+                </div>
+                <div><strong>Задание:</strong> <div>${linkify(t.topic)}</div>
+                    <input type="text" value="${escape(t.topic)}" style="width:80%; margin-top:5px" onchange="updateLizaTask('${t.id}', 'topic', this.value)">
+                </div>
+                <label><input type="checkbox" ${t.completed ? 'checked' : ''} onchange="updateLizaTask('${t.id}', 'completed', this.checked)"> ✅ Выполнено</label>
+            </div>
+        `).join('');
+    }
+    
+    function showLizaBlock() {
+        const block = document.getElementById('lizaBlock');
+        if(block) block.style.display = (currentChild === "Эльвина" || currentChild === "Эмилия") ? 'block' : 'none';
+    }
 
-window.removeSubject = removeSubject;
-window.deleteLesson = deleteLesson;
-window.deleteLizaTask = deleteLizaTask;
-window.goToLesson = goToLesson;
+    // ========== ПЕЧАТЬ ==========
+    function printChild() {
+        const avgs = getAverages()[currentChild];
+        const all = Object.entries(lessons).filter(([k]) => k.startsWith(currentChild));
+        let html = `<html><head><title>Оценки - ${currentChild}</title><style>table{border-collapse:collapse;width:100%} th,td{border:1px solid #ccc;padding:8px}</style></head><body>
+            <h1>📊 Дневник: ${currentChild}</h1>
+            <h3>Средний балл</h3>
+            <table><tr><th>Предмет</th><th>Средний</th><th>Кол-во</th></tr>${avgs.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>
+            <h3>Все оценки</h3>
+            <table><tr><th>День</th><th>Предмет</th><th>Тема</th><th>Оценка</th></tr>${all.filter(([_,l]) => l.grade).map(([k,l]) => `<tr><td>${k.split('_')[1]}</td><td>${l.subject}</td><td>${l.topic}</td><td>${l.grade}</td></tr>`).join('')}</table>
+        </body></html>`;
+        let w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
+    }
+    
+    function printAll() {
+        let html = `<html><head><title>Сводные оценки</title><style>table{border-collapse:collapse;width:100%} th,td{border:1px solid #ccc;padding:8px}</style></head><body><h1>📊 Сводный отчёт</h1>`;
+        for(let child of children) {
+            const avgs = getAverages()[child];
+            html += `<h2>${child}</h2><table><tr><th>Предмет</th><th>Средний</th><th>Кол-во</th></tr>${avgs.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>`;
+        }
+        html += `</body></html>`;
+        let w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
+    }
 
-document.getElementById('printChildBtn').onclick = () => printGradesForChild(currentChild);
-document.getElementById('printAllBtn').onclick = printAllChildren;
-document.getElementById('backupBtn').onclick = backupData;
-document.getElementById('restoreBtn').onclick = () => document.getElementById('restoreFileInput').click();
-document.getElementById('clearAllBtn').onclick = clearAllData;
-document.getElementById('newWeekBtn').onclick = startNewWeek;
-document.getElementById('restoreFileInput').onchange = e => { if(e.target.files[0]) restoreData(e.target.files[0]); e.target.value = ''; };
-document.getElementById('addLizaTaskBtn').onclick = addLizaTask;
-document.getElementById('addSubjectBtn').onclick = () => {
-    let name = prompt('Название предмета:');
-    if(name) addSubject(name);
-};
+    // ========== РЕЗЕРВНОЕ КОПИРОВАНИЕ ==========
+    function backup() {
+        const data = { lessons, lizaTasks, subjects };
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'}));
+        a.download = `family_backup_${new Date().toISOString().slice(0,19)}.json`;
+        a.click();
+    }
+    
+    function restore(file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const d = JSON.parse(e.target.result);
+                Promise.all([
+                    d.lessons && db.ref('lessons').set(d.lessons),
+                    d.lizaTasks && db.ref('lizaTasks').set(d.lizaTasks),
+                    d.subjects && db.ref('subjects').set(d.subjects)
+                ]).then(() => { alert('✅ Восстановлено!'); location.reload(); });
+            } catch(err) { alert('Ошибка файла'); }
+        };
+        reader.readAsText(file);
+    }
+    
+    function clearAll() {
+        if(confirm('Удалить ВСЕ данные? Это необратимо!')) {
+            Promise.all([
+                db.ref('lessons').set({}),
+                db.ref('lizaTasks').set([]),
+                db.ref('subjects').set(subjects)
+            ]).then(() => { alert('✅ Очищено'); location.reload(); });
+        }
+    }
+    
+    function newWeek() {
+        if(confirm('Начать новую неделю? Все текущие уроки будут удалены. Сделайте резервную копию перед этим!')) {
+            db.ref('lessons').set({}).then(() => { alert('✅ Новая неделя!'); location.reload(); });
+        }
+    }
 
-document.querySelectorAll('.main-tab').forEach(btn => btn.onclick = () => switchMainTab(btn.dataset.main));
+    // ========== ВКЛАДКИ ==========
+    function renderChildTabs() {
+        const container = document.getElementById('childTabs');
+        if(container) container.innerHTML = children.map(c => `<button class="child-btn ${c===currentChild?'active':''}" data-child="${c}">${c}</button>`).join('');
+        document.querySelectorAll('[data-child]').forEach(btn => btn.onclick = () => { currentChild = btn.dataset.child; render(); });
+    }
+    
+    function renderDayTabs() {
+        const container = document.getElementById('dayTabs');
+        if(container) container.innerHTML = days.map(d => `<button class="day-btn ${d===currentDay?'active':''}" data-day="${d}">${d}</button>`).join('');
+        document.querySelectorAll('[data-day]').forEach(btn => btn.onclick = () => { currentDay = btn.dataset.day; renderLessons(); });
+    }
+    
+    function renderDebtsChildTabs() {
+        const container = document.getElementById('debtsChildTabs');
+        if(container) container.innerHTML = children.map(c => `<button class="child-btn ${c===currentChild?'active':''}" data-dchild="${c}">${c}</button>`).join('');
+        document.querySelectorAll('[data-dchild]').forEach(btn => btn.onclick = () => { currentChild = btn.dataset.dchild; renderDebts(); });
+    }
+    
+    function switchTab(tab) {
+        currentTab = tab;
+        const diary = document.getElementById('diaryTab');
+        const debts = document.getElementById('debtsTab');
+        if(tab === 'diary') {
+            diary.style.display = 'block';
+            debts.style.display = 'none';
+            render();
+        } else {
+            diary.style.display = 'none';
+            debts.style.display = 'block';
+            renderDebtsChildTabs();
+            renderDebts();
+        }
+        document.querySelectorAll('.main-tab').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.main-tab[data-tab="${tab}"]`).classList.add('active');
+    }
+    
+    function render() {
+        if(currentTab === 'diary') {
+            renderChildTabs();
+            renderDayTabs();
+            renderLessons();
+            renderStats();
+            renderSubjects();
+            showLizaBlock();
+            renderLiza();
+        }
+    }
 
-loadAllData();
+    function escape(str) { if(!str) return ""; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+
+    // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
+    window.addLesson = addLesson;
+    window.updateLesson = updateLesson;
+    window.deleteLesson = deleteLesson;
+    window.addSubject = addSubject;
+    window.removeSubject = removeSubject;
+    window.addLizaTask = addLizaTask;
+    window.updateLizaTask = updateLizaTask;
+    window.deleteLizaTask = deleteLizaTask;
+    window.goToLesson = goToLesson;
+    window.debounceSave = debounceSave;
+
+    // ========== СОБЫТИЯ ==========
+    document.getElementById('printBtn').onclick = printChild;
+    document.getElementById('printAllBtn').onclick = printAll;
+    document.getElementById('backupBtn').onclick = backup;
+    document.getElementById('restoreBtn').onclick = () => document.getElementById('fileInput').click();
+    document.getElementById('newWeekBtn').onclick = newWeek;
+    document.getElementById('clearBtn').onclick = clearAll;
+    document.getElementById('addSubjectBtn').onclick = addSubject;
+    document.getElementById('addLizaBtn').onclick = addLizaTask;
+    document.getElementById('fileInput').onchange = e => { if(e.target.files[0]) restore(e.target.files[0]); e.target.value = ''; };
+    document.querySelectorAll('.main-tab').forEach(btn => btn.onclick = () => switchTab(btn.dataset.tab));
+    
+    loadData();
 </script>
 </body>
 </html>
