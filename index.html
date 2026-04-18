@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Семейный дневник — автосмена недель</title>
+    <title>Семейный дневник</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
@@ -14,6 +14,8 @@
         .toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; justify-content: flex-end; }
         .toolbar button { background: white; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 40px; cursor: pointer; font-size: 0.85rem; }
         .toolbar button:hover { background: #e2e8f0; }
+        .toolbar button.primary { background: #1e4a76; color: white; border: none; }
+        .toolbar button.primary:hover { background: #0f3b5e; }
         .toolbar button.danger { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
         .toolbar button.danger:hover { background: #fecaca; }
         
@@ -25,13 +27,8 @@
         .tab-btn { background: #e2e8f0; border: none; padding: 12px 24px; border-radius: 40px; font-size: 1rem; font-weight: bold; cursor: pointer; }
         .tab-btn.active { background: #1e4a76; color: white; }
         
-        .week-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 16px; }
-        .week-btn { background: #e2e8f0; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; font-weight: 500; }
-        .week-btn.active { background: #1e4a76; color: white; }
-        .week-btn.archive { background: #cbd5e1; opacity: 0.7; }
-        
         .day-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 16px; border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; }
-        .day-btn { background: none; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; font-weight: 500; text-align: center; }
+        .day-btn { background: none; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: 500; font-size: 1rem; }
         .day-btn.active { background: #1e4a76; color: white; }
         
         .card { background: white; border-radius: 28px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); padding: 20px 24px; margin-bottom: 28px; }
@@ -81,14 +78,13 @@
         <button id="backupBtn">💾 Резервная копия</button>
         <button id="restoreBtn">🔄 Восстановить из копии</button>
         <button id="clearAllBtn" class="danger">⚠️ Очистить все данные</button>
-        <button id="forceNewWeekBtn" class="btn-primary">🔄 Принудительно начать новую неделю</button>
+        <button id="newWeekBtn" class="primary">🔄 Новая неделя</button>
         <input type="file" id="restoreFileInput" style="display:none;" accept=".json">
     </div>
 
     <div class="main-tabs print-hide">
         <button class="main-tab active" data-main="diary">📖 Дневник</button>
         <button class="main-tab" data-main="debts">⚠️ Задолженности</button>
-        <button class="main-tab" data-main="archive">📦 Архив</button>
         <button class="main-tab" data-main="materials">📁 Материалы</button>
     </div>
 
@@ -125,17 +121,8 @@
     <div id="debtsTab" style="display:none;">
         <div class="child-tabs print-hide" id="debtsChildTabs"></div>
         <div class="card">
-            <h3>⚠️ Невыполненные задания из текущей недели</h3>
+            <h3>⚠️ Невыполненные задания</h3>
             <div id="debtsList">Загрузка...</div>
-        </div>
-    </div>
-
-    <div id="archiveTab" style="display:none;">
-        <div class="child-tabs print-hide" id="archiveChildTabs"></div>
-        <div class="card">
-            <h3>📦 Архивные недели <button id="showAllArchiveBtn" class="btn-small">Показать всё</button></h3>
-            <div id="archiveWeeksList"></div>
-            <div id="archiveLessonsContainer"></div>
         </div>
     </div>
 
@@ -179,108 +166,22 @@
     let currentChild = "Эльвина";
     let currentDay = "Понедельник";
     let currentMainTab = "diary";
-    let showArchive = false;
-    let selectedArchiveWeek = null;
 
-    let lessonsData = {};      // текущая неделя
-    let archiveData = {};      // архив: { weekKey: { child_day_lessonId: lesson } }
+    let lessonsData = {};
     let lizaTasks = [];
     let subjects = ["Математика", "Русский язык", "Чтение", "Окружающий мир", "Английский язык"];
     let materialsData = {};
     
     let saveTimeouts = {};
 
-    // ========== ФУНКЦИИ РАБОТЫ С НЕДЕЛЯМИ ==========
-    function getCurrentWeekKey() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-    
-    function getWeekNumber() {
-        const now = new Date();
-        const start = new Date(now.getFullYear(), 0, 1);
-        const diff = now - start;
-        const oneWeek = 604800000;
-        return Math.ceil(diff / oneWeek);
-    }
-    
-    function formatWeekKey(weekNumber, year) {
-        return `${year}-неделя-${weekNumber}`;
-    }
-    
-    function getCurrentWeekNumber() {
-        return getWeekNumber();
-    }
-    
-    function getCurrentWeekDisplay() {
-        return `Неделя ${getCurrentWeekNumber()}`;
-    }
-    
-    // Автоматическая смена недели при загрузке
-    function checkAndArchiveOldWeek() {
-        const lastWeekKey = localStorage.getItem('lastWeekKey');
-        const currentWeekKey = getCurrentWeekKey();
-        
-        if (lastWeekKey && lastWeekKey !== currentWeekKey && Object.keys(lessonsData).length > 0) {
-            // Архивируем старую неделю
-            const weekNumber = getWeekNumber();
-            const archiveWeekKey = formatWeekKey(weekNumber - 1, new Date().getFullYear());
-            
-            // Сохраняем текущие уроки в архив
-            db.ref(`archive/${archiveWeekKey}`).set(lessonsData).then(() => {
-                console.log(`Неделя ${archiveWeekKey} заархивирована`);
-                // Очищаем текущую неделю
-                clearCurrentWeek();
-            });
-        }
-        
-        localStorage.setItem('lastWeekKey', currentWeekKey);
-    }
-    
-    function clearCurrentWeek() {
-        db.ref('lessons').set({});
-        lessonsData = {};
-        renderAll();
-    }
-    
-    function forceNewWeek() {
-        if (confirm('Начать новую неделю? Текущая неделя будет сохранена в архив, расписание очистится.')) {
-            const weekNumber = getWeekNumber();
-            const archiveWeekKey = formatWeekKey(weekNumber, new Date().getFullYear());
-            
-            if (Object.keys(lessonsData).length > 0) {
-                db.ref(`archive/${archiveWeekKey}`).set(lessonsData).then(() => {
-                    db.ref('lessons').set({});
-                    lessonsData = {};
-                    localStorage.setItem('lastWeekKey', getCurrentWeekKey());
-                    renderAll();
-                    alert(`✅ Неделя ${weekNumber} заархивирована. Начинайте новую!`);
-                });
-            } else {
-                db.ref('lessons').set({});
-                localStorage.setItem('lastWeekKey', getCurrentWeekKey());
-                renderAll();
-                alert('✅ Текущая неделя очищена');
-            }
-        }
-    }
-
-    // ========== ЗАГРУЗКА ДАННЫХ ==========
     function loadAllData() {
-        db.ref('lessons').on('value', (snap) => { 
-            lessonsData = snap.val() || {}; 
-            checkAndArchiveOldWeek();
-            renderAll(); 
-        });
-        db.ref('archive').on('value', (snap) => { archiveData = snap.val() || {}; renderArchiveList(); });
+        db.ref('lessons').on('value', (snap) => { lessonsData = snap.val() || {}; renderAll(); });
         db.ref('lizaTasks').on('value', (snap) => { lizaTasks = snap.val() || []; renderLizaTasks(); renderLizaTasksVisibility(); });
         db.ref('subjects').on('value', (snap) => { if(snap.val()) subjects = snap.val(); renderSubjectsList(); });
         db.ref('materials').on('value', (snap) => { materialsData = snap.val() || {}; renderMaterials(); });
     }
 
+    function getLessonKey(child, day, lessonId) { return `${child}_${day}_${lessonId}`; }
     function getLessonsForDay(child, day) {
         const result = [];
         for(let [key, lesson] of Object.entries(lessonsData)) {
@@ -291,25 +192,12 @@
         return result.sort((a,b) => (a.lesson.lessonNumber || 0) - (b.lesson.lessonNumber || 0));
     }
 
-    function getArchiveLessonsForDay(child, day, weekKey) {
-        const weekArchive = archiveData[weekKey] || {};
-        const result = [];
-        for(let [key, lesson] of Object.entries(weekArchive)) {
-            if(key.startsWith(`${child}_${day}_`)) {
-                result.push({ key, lesson });
-            }
-        }
-        return result.sort((a,b) => (a.lesson.lessonNumber || 0) - (b.lesson.lessonNumber || 0));
-    }
-
-    // ========== СОХРАНЕНИЕ ==========
     function saveSubjects() { db.ref('subjects').set(subjects); }
     function saveLesson(key, data) { db.ref(`lessons/${key}`).set(data); }
     function deleteLessonFromDB(key) { db.ref(`lessons/${key}`).remove(); }
     function saveLizaTask(taskId, data) { db.ref(`lizaTasks/${taskId}`).set(data); }
     function deleteLizaTaskFromDB(taskId) { db.ref(`lizaTasks/${taskId}`).remove(); }
     function saveMaterials() { db.ref('materials').set(materialsData); }
-    function getLessonKey(child, day, lessonId) { return `${child}_${day}_${lessonId}`; }
 
     function linkify(text) {
         if(!text) return "—";
@@ -389,92 +277,6 @@
         }).join('');
     }
 
-    // ========== АРХИВ ==========
-    function renderArchiveList() {
-        const container = document.getElementById('archiveWeeksList');
-        if(!container) return;
-        
-        const weeks = Object.keys(archiveData).sort().reverse();
-        if(weeks.length === 0) {
-            container.innerHTML = '<p>📭 Архив пуст</p>';
-            return;
-        }
-        
-        container.innerHTML = weeks.map(week => `
-            <button class="week-btn ${selectedArchiveWeek === week ? 'active' : ''}" data-archive-week="${week}">📦 ${week}</button>
-        `).join('');
-        
-        document.querySelectorAll('[data-archive-week]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                selectedArchiveWeek = btn.dataset.archiveWeek;
-                renderArchiveList();
-                renderArchiveLessons();
-            });
-        });
-        
-        if (selectedArchiveWeek && weeks.includes(selectedArchiveWeek)) {
-            renderArchiveLessons();
-        } else if (weeks.length > 0) {
-            selectedArchiveWeek = weeks[0];
-            renderArchiveLessons();
-        }
-    }
-    
-    function renderArchiveLessons() {
-        const container = document.getElementById('archiveLessonsContainer');
-        if(!container || !selectedArchiveWeek) return;
-        
-        const weekArchive = archiveData[selectedArchiveWeek] || {};
-        const lessons = [];
-        for(let [key, lesson] of Object.entries(weekArchive)) {
-            if(key.startsWith(currentChild)) {
-                const parts = key.split('_');
-                const day = parts[1];
-                lessons.push({ key, day, lesson });
-            }
-        }
-        
-        const groupedByDay = {};
-        for(let l of lessons) {
-            if(!groupedByDay[l.day]) groupedByDay[l.day] = [];
-            groupedByDay[l.day].push(l);
-        }
-        
-        if(Object.keys(groupedByDay).length === 0) {
-            container.innerHTML = '<p>Нет уроков в архиве для этого ребёнка</p>';
-            return;
-        }
-        
-        let html = '';
-        for(let day of dayNames) {
-            const dayLessons = groupedByDay[day] || [];
-            if(dayLessons.length === 0) continue;
-            html += `<h4>${day}</h4>`;
-            dayLessons.sort((a,b) => (a.lesson.lessonNumber || 0) - (b.lesson.lessonNumber || 0));
-            for(let l of dayLessons) {
-                const lesson = l.lesson;
-                const allDone = isAllDone(lesson);
-                html += `
-                    <div class="lesson-card" style="border-left-color: #64748b;">
-                        <div class="lesson-header">
-                            <div><span class="lesson-number">Урок ${lesson.lessonNumber}</span> <strong>${escapeHtml(lesson.subject)}</strong></div>
-                            <div>${lesson.grade !== null && lesson.grade !== '' ? `<span class="grade-badge" style="background:#cbd5e1;">${lesson.grade}</span>` : '—'}</div>
-                        </div>
-                        <div><strong>Тема:</strong> ${linkify(lesson.topic)}</div>
-                        <div class="checks">
-                            <span>📺 ${lesson.watched ? '✅' : '❌'}</span>
-                            <span>📚 ${lesson.homeworkBookDone ? '✅' : '❌'}</span>
-                            <span>📖 ${lesson.homeworkWorkbookDone ? '✅' : '❌'}</span>
-                            ${allDone ? '<span class="all-done-badge">✅ Всё готово!</span>' : ''}
-                        </div>
-                    </div>
-                `;
-            }
-        }
-        container.innerHTML = html;
-    }
-
-    // ========== МАТЕРИАЛЫ ==========
     function addMaterial(child, title, url, type, fileName) {
         if(!materialsData[child]) materialsData[child] = [];
         materialsData[child].push({ id: Date.now().toString(), title: title, url: url, type: type, fileName: fileName || "" });
@@ -516,7 +318,6 @@
         `).join('');
     }
 
-    // ========== УРОКИ ==========
     function addSubject(subjectName) {
         if(!subjectName.trim()) return;
         if(!subjects.includes(subjectName.trim())) { subjects.push(subjectName.trim()); saveSubjects(); }
@@ -691,7 +492,6 @@
         if(addBtn) addBtn.onclick = () => addNewLesson();
     }
 
-    // ========== ЗАДАНИЯ ОТ ЛИЗЫ ==========
     function addLizaTask() {
         const newId = Date.now().toString();
         saveLizaTask(newId, { id: newId, child: currentChild, subject: "Новый предмет", topic: "Что сделать", completed: false });
@@ -728,13 +528,12 @@
         if(card && card.style.display === 'block') renderLizaTasks();
     }
 
-    // ========== ПЕЧАТЬ ==========
     function printGradesForChild(child) {
         const averages = computeAveragesForChild(child);
         const allLessons = Object.entries(lessonsData).filter(([key]) => key.startsWith(child));
         let html = `<html><head><title>Оценки - ${child}</title><style>body{font-family:system-ui;padding:20px;} table{border-collapse:collapse;width:100%;} th,td{border:1px solid #cbd5e1;padding:8px;} th{background:#eef2ff;}</style></head><body>
-            <h1>📊 Дневник: ${child}</h1><h3>Средний балл</h3><tr><th>Предмет</th><th>Средний балл</th><th>Кол-во</th></tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>
-            <h3>Все оценки</h3><table><th>День</th><th>Предмет</th><th>Тема</th><th>Оценка</th></tr>${allLessons.filter(([_,l]) => l.grade).map(([key,l]) => `<tr><td>${key.split('_')[1]}</td><td>${l.subject}</td><td>${l.topic}</td><td>${l.grade}</td></tr>`).join('')}</table></body></html>`;
+            <h1>📊 Дневник: ${child}</h1><h3>Средний балл</h3><table><th>Предмет</th><th>Средний балл</th><th>Кол-во</th><tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>
+            <h3>Все оценки</h3><tr><th>День</th><th>Предмет</th><th>Тема</th><th>Оценка</th></tr>${allLessons.filter(([_,l]) => l.grade).map(([key,l]) => `<tr><td>${key.split('_')[1]}</td><td>${l.subject}</td><td>${l.topic}</td><td>${l.grade}</td></tr>`).join('')}</tr></body></html>`;
         const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
     }
     
@@ -742,15 +541,14 @@
         let html = `<html><head><title>Сводные оценки</title><style>body{font-family:system-ui;padding:20px;} table{border-collapse:collapse;width:100%;} th,td{border:1px solid #cbd5e1;padding:8px;} th{background:#eef2ff;}</style></head><body><h1>📊 Сводный отчёт</h1>`;
         for(let child of children) {
             const averages = computeAveragesForChild(child);
-            html += `<h2>${child}</h2><tr><th>Предмет</th><th>Средний балл</th><th>Кол-во</th></tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</tr>`;
+            html += `<h2>${child}</h2><table><th>Предмет</th><th>Средний балл</th><th>Кол-во</th></tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>`;
         }
         html += `</body></html>`;
         const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
     }
 
-    // ========== РЕЗЕРВНОЕ КОПИРОВАНИЕ ==========
     function backupData() {
-        const allData = { lessons: lessonsData, lizaTasks: lizaTasks, subjects: subjects, materials: materialsData, archive: archiveData, backupDate: new Date().toISOString() };
+        const allData = { lessons: lessonsData, lizaTasks: lizaTasks, subjects: subjects, materials: materialsData, backupDate: new Date().toISOString() };
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([JSON.stringify(allData, null, 2)], {type:'application/json'}));
         a.download = `family_diary_backup_${new Date().toISOString().slice(0,19)}.json`;
@@ -765,11 +563,10 @@
                 if (confirm('Восстановление данных заменит текущие записи. Продолжить?')) {
                     document.getElementById('lessonsContainer').innerHTML = '<p>⏳ Восстановление данных...</p>';
                     const promises = [];
-                    if (restored.lessons) promises.push(db.ref('lessons').set(restored.lessons));
-                    if (restored.lizaTasks) promises.push(db.ref('lizaTasks').set(restored.lizaTasks));
+                    promises.push(db.ref('lessons').set(restored.lessons || {}));
+                    promises.push(db.ref('lizaTasks').set(restored.lizaTasks || []));
                     if (restored.subjects) promises.push(db.ref('subjects').set(restored.subjects));
                     if (restored.materials) promises.push(db.ref('materials').set(restored.materials));
-                    if (restored.archive) promises.push(db.ref('archive').set(restored.archive));
                     Promise.all(promises).then(() => {
                         alert('✅ Данные восстановлены! Страница будет обновлена.');
                         setTimeout(() => window.location.reload(), 1500);
@@ -781,24 +578,30 @@
     }
     
     function clearAllData() {
-        if (confirm('ВНИМАНИЕ! Это удалит ВСЕ данные (уроки, оценки, материалы, архив). Отменить невозможно. Продолжить?')) {
+        if (confirm('ВНИМАНИЕ! Это удалит ВСЕ данные (уроки, оценки, материалы). Отменить невозможно. Продолжить?')) {
             if (confirm('Последнее предупреждение! ВСЕ ДАННЫЕ БУДУТ УДАЛЕНЫ. Вы уверены?')) {
                 document.getElementById('lessonsContainer').innerHTML = '<p>⏳ Удаление данных...</p>';
                 Promise.all([
                     db.ref('lessons').set({}),
                     db.ref('lizaTasks').set([]),
-                    db.ref('materials').set({}),
-                    db.ref('archive').set({})
+                    db.ref('materials').set({})
                 ]).then(() => {
-                    localStorage.removeItem('lastWeekKey');
                     alert('✅ Все данные удалены. Страница будет обновлена.');
                     setTimeout(() => window.location.reload(), 1500);
                 }).catch(err => alert('❌ Ошибка: ' + err.message));
             }
         }
     }
+    
+    function startNewWeek() {
+        if (confirm('Начать новую неделю? Все текущие уроки будут удалены. Старые данные можно восстановить из резервной копии.')) {
+            db.ref('lessons').set({}).then(() => {
+                alert('✅ Новая неделя начата! Расписание очищено.');
+                setTimeout(() => window.location.reload(), 1000);
+            }).catch(err => alert('❌ Ошибка: ' + err.message));
+        }
+    }
 
-    // ========== ВКЛАДКИ ==========
     function renderDayTabs() {
         const container = document.getElementById('dayTabs');
         if(!container) return;
@@ -840,17 +643,6 @@
         }));
     }
     
-    function renderArchiveChildTabs() {
-        const container = document.getElementById('archiveChildTabs');
-        if(!container) return;
-        container.innerHTML = children.map(child => `<button class="tab-btn ${child === currentChild ? 'active' : ''}" data-archchild="${child}">${child}</button>`).join('');
-        document.querySelectorAll('#archiveChildTabs [data-archchild]').forEach(btn => btn.addEventListener('click', () => { 
-            currentChild = btn.dataset.archchild;
-            renderArchiveChildTabs();
-            renderArchiveLessons();
-        }));
-    }
-    
     function renderMaterialsChildTabs() {
         const container = document.getElementById('materialsChildTabs');
         if(!container) return;
@@ -873,33 +665,21 @@
         currentMainTab = tab;
         const diaryTab = document.getElementById('diaryTab');
         const debtsTab = document.getElementById('debtsTab');
-        const archiveTab = document.getElementById('archiveTab');
         const materialsTab = document.getElementById('materialsTab');
-        
         if(tab === 'diary') {
             diaryTab.style.display = 'block';
             debtsTab.style.display = 'none';
-            archiveTab.style.display = 'none';
             materialsTab.style.display = 'none';
             renderAll();
         } else if(tab === 'debts') {
             diaryTab.style.display = 'none';
             debtsTab.style.display = 'block';
-            archiveTab.style.display = 'none';
             materialsTab.style.display = 'none';
             renderDebtsChildTabs();
             renderDebts();
-        } else if(tab === 'archive') {
-            diaryTab.style.display = 'none';
-            debtsTab.style.display = 'none';
-            archiveTab.style.display = 'block';
-            materialsTab.style.display = 'none';
-            renderArchiveChildTabs();
-            renderArchiveList();
         } else {
             diaryTab.style.display = 'none';
             debtsTab.style.display = 'none';
-            archiveTab.style.display = 'none';
             materialsTab.style.display = 'block';
             renderMaterialsChildTabs();
             renderMaterials();
@@ -921,21 +701,18 @@
     
     function escapeHtml(str) { if(!str) return ""; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
 
-    // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
     window.removeSubject = removeSubject;
     window.deleteMaterial = deleteMaterial;
     window.goToLesson = goToLesson;
     
-    // ========== СОБЫТИЯ ==========
     document.getElementById('printChildBtn').onclick = () => printGradesForChild(currentChild);
     document.getElementById('printAllBtn').onclick = printAllChildren;
     document.getElementById('backupBtn').onclick = backupData;
     document.getElementById('restoreBtn').onclick = () => document.getElementById('restoreFileInput').click();
     document.getElementById('clearAllBtn').onclick = clearAllData;
-    document.getElementById('forceNewWeekBtn').onclick = forceNewWeek;
+    document.getElementById('newWeekBtn').onclick = startNewWeek;
     document.getElementById('restoreFileInput').onchange = (e) => { if(e.target.files[0]) restoreData(e.target.files[0]); e.target.value = ''; };
     document.getElementById('addLizaTaskBtn').onclick = addLizaTask;
-    document.getElementById('showAllArchiveBtn').onclick = () => { renderArchiveList(); };
     
     document.getElementById('addLinkBtn').onclick = () => {
         const title = document.getElementById('newLinkTitle').value.trim();
@@ -965,7 +742,6 @@
         btn.addEventListener('click', () => switchMainTab(btn.dataset.main));
     });
     
-    // ИНИЦИАЛИЗАЦИЯ
     loadAllData();
 </script>
 </body>
