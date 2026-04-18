@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Семейный дневник — сохранение дат</title>
+    <title>Семейный дневник — автосмена недель</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
@@ -81,23 +81,20 @@
         <button id="backupBtn">💾 Резервная копия</button>
         <button id="restoreBtn">🔄 Восстановить из копии</button>
         <button id="clearAllBtn" class="danger">⚠️ Очистить все данные</button>
+        <button id="forceNewWeekBtn" class="btn-primary">🔄 Принудительно начать новую неделю</button>
         <input type="file" id="restoreFileInput" style="display:none;" accept=".json">
     </div>
 
     <div class="main-tabs print-hide">
         <button class="main-tab active" data-main="diary">📖 Дневник</button>
         <button class="main-tab" data-main="debts">⚠️ Задолженности</button>
+        <button class="main-tab" data-main="archive">📦 Архив</button>
         <button class="main-tab" data-main="materials">📁 Материалы</button>
     </div>
 
     <div id="diaryTab">
         <div class="child-tabs print-hide" id="childTabs"></div>
         
-        <div class="card print-hide">
-            <h3>📅 Недели <button id="showArchiveBtn" class="btn-small">📦 Показать архив</button></h3>
-            <div id="weekTabs" class="week-tabs"></div>
-        </div>
-
         <div class="card print-hide">
             <h3>📚 Список предметов <button id="addSubjectBtn" class="btn-small">+ Добавить предмет</button></h3>
             <div id="subjectsList" class="subject-list"></div>
@@ -128,8 +125,17 @@
     <div id="debtsTab" style="display:none;">
         <div class="child-tabs print-hide" id="debtsChildTabs"></div>
         <div class="card">
-            <h3>⚠️ Невыполненные задания</h3>
+            <h3>⚠️ Невыполненные задания из текущей недели</h3>
             <div id="debtsList">Загрузка...</div>
+        </div>
+    </div>
+
+    <div id="archiveTab" style="display:none;">
+        <div class="child-tabs print-hide" id="archiveChildTabs"></div>
+        <div class="card">
+            <h3>📦 Архивные недели <button id="showAllArchiveBtn" class="btn-small">Показать всё</button></h3>
+            <div id="archiveWeeksList"></div>
+            <div id="archiveLessonsContainer"></div>
         </div>
     </div>
 
@@ -171,186 +177,125 @@
     const dayNames = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"];
     
     let currentChild = "Эльвина";
-    let currentWeek = "";
-    let currentDayIndex = 0;
+    let currentDay = "Понедельник";
     let currentMainTab = "diary";
     let showArchive = false;
+    let selectedArchiveWeek = null;
 
-    let lessonsData = {};
+    let lessonsData = {};      // текущая неделя
+    let archiveData = {};      // архив: { weekKey: { child_day_lessonId: lesson } }
     let lizaTasks = [];
     let subjects = ["Математика", "Русский язык", "Чтение", "Окружающий мир", "Английский язык"];
     let materialsData = {};
     
     let saveTimeouts = {};
 
-    // ========== ФУНКЦИИ РАБОТЫ С ДАТАМИ (МОСКОВСКОЕ ВРЕМЯ) ==========
-    function getMoscowDate() {
-        const now = new Date();
-        const moscowOffset = 3 * 60 * 60 * 1000;
-        return new Date(now.getTime() + (now.getTimezoneOffset() * 60 * 1000) + moscowOffset);
-    }
-    
-    function getCurrentWeekStart() {
-        const now = getMoscowDate();
-        const startOfWeek = new Date(now);
-        const day = now.getDay();
-        const diff = (day === 0 ? 6 : day - 1);
-        startOfWeek.setDate(now.getDate() - diff);
-        startOfWeek.setHours(0,0,0,0);
-        return startOfWeek;
-    }
-    
+    // ========== ФУНКЦИИ РАБОТЫ С НЕДЕЛЯМИ ==========
     function getCurrentWeekKey() {
-        const startOfWeek = getCurrentWeekStart();
-        const year = startOfWeek.getFullYear();
-        const month = String(startOfWeek.getMonth() + 1).padStart(2, '0');
-        const day = String(startOfWeek.getDate()).padStart(2, '0');
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
     
-    function getDateForDayIndex(weekKey, dayIndex) {
-        const start = new Date(weekKey + 'T00:00:00+03:00');
-        const date = new Date(start);
-        date.setDate(start.getDate() + dayIndex);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+    function getWeekNumber() {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), 0, 1);
+        const diff = now - start;
+        const oneWeek = 604800000;
+        return Math.ceil(diff / oneWeek);
     }
     
-    function getDayDate(weekKey, dayIndex) {
-        const start = new Date(weekKey + 'T00:00:00+03:00');
-        const date = new Date(start);
-        date.setDate(start.getDate() + dayIndex);
-        return date;
+    function formatWeekKey(weekNumber, year) {
+        return `${year}-неделя-${weekNumber}`;
     }
     
-    function formatDate(date) {
-        if (!date || isNaN(date.getTime())) return "??";
-        return `${date.getDate()}.${date.getMonth()+1}`;
+    function getCurrentWeekNumber() {
+        return getWeekNumber();
     }
     
-    function isValidDateKey(key) {
-        return /^\d{4}-\d{2}-\d{2}$/.test(key);
+    function getCurrentWeekDisplay() {
+        return `Неделя ${getCurrentWeekNumber()}`;
     }
     
-    function isWeekArchived(weekKey) {
-        if (!isValidDateKey(weekKey)) return true;
-        return weekKey < getCurrentWeekKey();
-    }
-    
-    function getWeekInfo(weekKey) {
-        if (!isValidDateKey(weekKey)) return { start: new Date(), end: new Date() };
-        const start = new Date(weekKey + 'T00:00:00+03:00');
-        const end = new Date(start);
-        end.setDate(start.getDate() + 4);
-        return { start, end };
-    }
-
-    // ========== КОНВЕРТАЦИЯ СТАРЫХ ДАННЫХ ПРИ ВОССТАНОВЛЕНИИ ==========
-    // Конвертируем только если ключ содержит день недели, а не дату
-    function convertOldKeyToNew(oldKey, lesson) {
-        const parts = oldKey.split('_');
-        if (parts.length !== 3) return null;
-        
-        const child = parts[0];
-        const secondPart = parts[1];
-        const timestamp = parts[2];
-        
-        // Если второй параметр — дата в формате YYYY-MM-DD, оставляем как есть
-        if (isValidDateKey(secondPart)) {
-            return oldKey;
-        }
-        
-        // Если второй параметр — день недели, конвертируем
-        const dayIndex = dayNames.indexOf(secondPart);
-        if (dayIndex === -1) return null;
-        
-        // Пытаемся определить дату из timestamp
-        let date = null;
-        if (timestamp && !isNaN(parseInt(timestamp))) {
-            date = new Date(parseInt(timestamp));
-        }
-        
-        // Если дата определена, находим неделю этой даты
-        if (date && !isNaN(date.getTime())) {
-            const startOfWeek = new Date(date);
-            const dayOfWeek = date.getDay();
-            const diff = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
-            startOfWeek.setDate(date.getDate() - diff);
-            startOfWeek.setHours(0,0,0,0);
-            const year = startOfWeek.getFullYear();
-            const month = String(startOfWeek.getMonth() + 1).padStart(2, '0');
-            const day = String(startOfWeek.getDate()).padStart(2, '0');
-            const weekKey = `${year}-${month}-${day}`;
-            const newDate = getDateForDayIndex(weekKey, dayIndex);
-            return `${child}_${newDate}_${timestamp}`;
-        }
-        
-        // Если дату определить не удалось, используем текущую неделю
+    // Автоматическая смена недели при загрузке
+    function checkAndArchiveOldWeek() {
+        const lastWeekKey = localStorage.getItem('lastWeekKey');
         const currentWeekKey = getCurrentWeekKey();
-        const newDate = getDateForDayIndex(currentWeekKey, dayIndex);
-        return `${child}_${newDate}_${timestamp}`;
+        
+        if (lastWeekKey && lastWeekKey !== currentWeekKey && Object.keys(lessonsData).length > 0) {
+            // Архивируем старую неделю
+            const weekNumber = getWeekNumber();
+            const archiveWeekKey = formatWeekKey(weekNumber - 1, new Date().getFullYear());
+            
+            // Сохраняем текущие уроки в архив
+            db.ref(`archive/${archiveWeekKey}`).set(lessonsData).then(() => {
+                console.log(`Неделя ${archiveWeekKey} заархивирована`);
+                // Очищаем текущую неделю
+                clearCurrentWeek();
+            });
+        }
+        
+        localStorage.setItem('lastWeekKey', currentWeekKey);
     }
     
-    function convertOldDataToNew(oldLessons) {
-        const newLessons = {};
-        let convertedCount = 0;
-        
-        for (let [oldKey, lesson] of Object.entries(oldLessons)) {
-            const newKey = convertOldKeyToNew(oldKey, lesson);
-            if (newKey) {
-                newLessons[newKey] = lesson;
-                if (newKey !== oldKey) {
-                    convertedCount++;
-                    console.log(`Конвертировано: ${oldKey} -> ${newKey}`);
-                }
+    function clearCurrentWeek() {
+        db.ref('lessons').set({});
+        lessonsData = {};
+        renderAll();
+    }
+    
+    function forceNewWeek() {
+        if (confirm('Начать новую неделю? Текущая неделя будет сохранена в архив, расписание очистится.')) {
+            const weekNumber = getWeekNumber();
+            const archiveWeekKey = formatWeekKey(weekNumber, new Date().getFullYear());
+            
+            if (Object.keys(lessonsData).length > 0) {
+                db.ref(`archive/${archiveWeekKey}`).set(lessonsData).then(() => {
+                    db.ref('lessons').set({});
+                    lessonsData = {};
+                    localStorage.setItem('lastWeekKey', getCurrentWeekKey());
+                    renderAll();
+                    alert(`✅ Неделя ${weekNumber} заархивирована. Начинайте новую!`);
+                });
             } else {
-                newLessons[oldKey] = lesson;
+                db.ref('lessons').set({});
+                localStorage.setItem('lastWeekKey', getCurrentWeekKey());
+                renderAll();
+                alert('✅ Текущая неделя очищена');
             }
         }
-        
-        console.log(`Конвертировано уроков: ${convertedCount}`);
-        return newLessons;
     }
 
     // ========== ЗАГРУЗКА ДАННЫХ ==========
     function loadAllData() {
         db.ref('lessons').on('value', (snap) => { 
             lessonsData = snap.val() || {}; 
-            const weeks = getAllWeeksForChild(currentChild);
-            if (weeks.length > 0 && (!currentWeek || !weeks.includes(currentWeek))) {
-                currentWeek = weeks[0];
-            } else if (weeks.length === 0) {
-                currentWeek = getCurrentWeekKey();
-            }
+            checkAndArchiveOldWeek();
             renderAll(); 
         });
+        db.ref('archive').on('value', (snap) => { archiveData = snap.val() || {}; renderArchiveList(); });
         db.ref('lizaTasks').on('value', (snap) => { lizaTasks = snap.val() || []; renderLizaTasks(); renderLizaTasksVisibility(); });
         db.ref('subjects').on('value', (snap) => { if(snap.val()) subjects = snap.val(); renderSubjectsList(); });
         db.ref('materials').on('value', (snap) => { materialsData = snap.val() || {}; renderMaterials(); });
     }
-    
-    function getAllWeeksForChild(child) {
-        const weeksSet = new Set();
-        for(let key of Object.keys(lessonsData)) {
-            if(key.startsWith(child)) {
-                const parts = key.split('_');
-                if(parts.length >= 2 && isValidDateKey(parts[1])) {
-                    weeksSet.add(parts[1]);
-                }
-            }
-        }
-        let weeks = Array.from(weeksSet);
-        weeks.sort().reverse();
-        if(weeks.length === 0) weeks.push(getCurrentWeekKey());
-        return weeks;
-    }
-    
-    function getLessonsForWeek(child, weekKey) {
+
+    function getLessonsForDay(child, day) {
         const result = [];
         for(let [key, lesson] of Object.entries(lessonsData)) {
-            if(key.startsWith(`${child}_${weekKey}_`)) {
+            if(key.startsWith(`${child}_${day}_`)) {
+                result.push({ key, lesson });
+            }
+        }
+        return result.sort((a,b) => (a.lesson.lessonNumber || 0) - (b.lesson.lessonNumber || 0));
+    }
+
+    function getArchiveLessonsForDay(child, day, weekKey) {
+        const weekArchive = archiveData[weekKey] || {};
+        const result = [];
+        for(let [key, lesson] of Object.entries(weekArchive)) {
+            if(key.startsWith(`${child}_${day}_`)) {
                 result.push({ key, lesson });
             }
         }
@@ -364,30 +309,27 @@
     function saveLizaTask(taskId, data) { db.ref(`lizaTasks/${taskId}`).set(data); }
     function deleteLizaTaskFromDB(taskId) { db.ref(`lizaTasks/${taskId}`).remove(); }
     function saveMaterials() { db.ref('materials').set(materialsData); }
-    function getLessonKey(child, date, lessonId) { return `${child}_${date}_${lessonId}`; }
+    function getLessonKey(child, day, lessonId) { return `${child}_${day}_${lessonId}`; }
 
-    // ========== ПРЕВРАЩАЕМ ССЫЛКИ ==========
     function linkify(text) {
         if(!text) return "—";
         const urlPattern = /(https?:\/\/[^\s]+)/g;
         return text.replace(urlPattern, (url) => `<a href="${url}" target="_blank" class="clickable-link" rel="noopener noreferrer">${url}</a>`);
     }
 
-    // ========== ПРОВЕРКА ВЫПОЛНЕНИЯ ==========
     function isAllDone(lesson) {
         return lesson.watched === true && lesson.homeworkBookDone === true && lesson.homeworkWorkbookDone === true;
     }
 
-    // ========== ЗАДОЛЖЕННОСТИ ==========
     function getDebtsForChild(child) {
         const debts = [];
         for(let [key, lesson] of Object.entries(lessonsData)) {
             if(key.startsWith(child) && !isAllDone(lesson)) {
                 const parts = key.split('_');
-                const date = parts[1];
+                const day = parts[1];
                 debts.push({
                     lessonKey: key,
-                    date: date,
+                    day: day,
                     subject: lesson.subject,
                     topic: lesson.topic,
                     lessonNumber: lesson.lessonNumber,
@@ -403,13 +345,16 @@
     function goToLesson(lessonKey) {
         const parts = lessonKey.split('_');
         const child = parts[0];
-        const week = parts[1];
+        const day = parts[1];
         const lessonId = parts[2];
         switchMainTab('diary');
         currentChild = child;
-        currentWeek = week;
-        currentDayIndex = 0;
-        renderAll();
+        currentDay = day;
+        renderChildTabs();
+        renderDayTabs();
+        renderSchedule();
+        renderLizaTasksVisibility();
+        renderGrades();
         setTimeout(() => {
             const lessonElement = document.querySelector(`.lesson-card[data-lesson-id="${lessonId}"]`);
             if(lessonElement) {
@@ -435,13 +380,98 @@
             if(d.missingWorkbook) missingText.push('❌ Не выполнено ДЗ в тетради');
             return `
                 <div class="debt-item" onclick="goToLesson('${d.lessonKey}')">
-                    <div><strong>📅 ${d.date}</strong> | <strong>📖 ${escapeHtml(d.subject)}</strong> | Урок ${d.lessonNumber}</div>
+                    <div><strong>📅 ${d.day}</strong> | <strong>📖 ${escapeHtml(d.subject)}</strong> | Урок ${d.lessonNumber}</div>
                     <div>📚 Тема: ${escapeHtml(d.topic)}</div>
                     <div style="margin-top:8px; font-size:0.9rem;">${missingText.join('<br>')}</div>
                     <div style="margin-top:8px; font-size:0.8rem; color:#1e4a76;">🔗 Нажмите, чтобы перейти к уроку →</div>
                 </div>
             `;
         }).join('');
+    }
+
+    // ========== АРХИВ ==========
+    function renderArchiveList() {
+        const container = document.getElementById('archiveWeeksList');
+        if(!container) return;
+        
+        const weeks = Object.keys(archiveData).sort().reverse();
+        if(weeks.length === 0) {
+            container.innerHTML = '<p>📭 Архив пуст</p>';
+            return;
+        }
+        
+        container.innerHTML = weeks.map(week => `
+            <button class="week-btn ${selectedArchiveWeek === week ? 'active' : ''}" data-archive-week="${week}">📦 ${week}</button>
+        `).join('');
+        
+        document.querySelectorAll('[data-archive-week]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectedArchiveWeek = btn.dataset.archiveWeek;
+                renderArchiveList();
+                renderArchiveLessons();
+            });
+        });
+        
+        if (selectedArchiveWeek && weeks.includes(selectedArchiveWeek)) {
+            renderArchiveLessons();
+        } else if (weeks.length > 0) {
+            selectedArchiveWeek = weeks[0];
+            renderArchiveLessons();
+        }
+    }
+    
+    function renderArchiveLessons() {
+        const container = document.getElementById('archiveLessonsContainer');
+        if(!container || !selectedArchiveWeek) return;
+        
+        const weekArchive = archiveData[selectedArchiveWeek] || {};
+        const lessons = [];
+        for(let [key, lesson] of Object.entries(weekArchive)) {
+            if(key.startsWith(currentChild)) {
+                const parts = key.split('_');
+                const day = parts[1];
+                lessons.push({ key, day, lesson });
+            }
+        }
+        
+        const groupedByDay = {};
+        for(let l of lessons) {
+            if(!groupedByDay[l.day]) groupedByDay[l.day] = [];
+            groupedByDay[l.day].push(l);
+        }
+        
+        if(Object.keys(groupedByDay).length === 0) {
+            container.innerHTML = '<p>Нет уроков в архиве для этого ребёнка</p>';
+            return;
+        }
+        
+        let html = '';
+        for(let day of dayNames) {
+            const dayLessons = groupedByDay[day] || [];
+            if(dayLessons.length === 0) continue;
+            html += `<h4>${day}</h4>`;
+            dayLessons.sort((a,b) => (a.lesson.lessonNumber || 0) - (b.lesson.lessonNumber || 0));
+            for(let l of dayLessons) {
+                const lesson = l.lesson;
+                const allDone = isAllDone(lesson);
+                html += `
+                    <div class="lesson-card" style="border-left-color: #64748b;">
+                        <div class="lesson-header">
+                            <div><span class="lesson-number">Урок ${lesson.lessonNumber}</span> <strong>${escapeHtml(lesson.subject)}</strong></div>
+                            <div>${lesson.grade !== null && lesson.grade !== '' ? `<span class="grade-badge" style="background:#cbd5e1;">${lesson.grade}</span>` : '—'}</div>
+                        </div>
+                        <div><strong>Тема:</strong> ${linkify(lesson.topic)}</div>
+                        <div class="checks">
+                            <span>📺 ${lesson.watched ? '✅' : '❌'}</span>
+                            <span>📚 ${lesson.homeworkBookDone ? '✅' : '❌'}</span>
+                            <span>📖 ${lesson.homeworkWorkbookDone ? '✅' : '❌'}</span>
+                            ${allDone ? '<span class="all-done-badge">✅ Всё готово!</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        container.innerHTML = html;
     }
 
     // ========== МАТЕРИАЛЫ ==========
@@ -504,9 +534,8 @@
     }
 
     function addNewLesson() {
-        if(!currentWeek) return;
         const lessonId = Date.now().toString();
-        const existing = getLessonsForWeek(currentChild, currentWeek).length;
+        const existing = getLessonsForDay(currentChild, currentDay).length;
         const defaultSubject = subjects.length > 0 ? subjects[0] : "Новый предмет";
         const newLesson = {
             lessonNumber: existing + 1,
@@ -521,25 +550,25 @@
             extraLink: "",
             extraLinkDone: false
         };
-        saveLesson(getLessonKey(currentChild, currentWeek, lessonId), newLesson);
+        saveLesson(getLessonKey(currentChild, currentDay, lessonId), newLesson);
     }
 
-    function updateLessonField(child, week, lessonId, field, value) {
-        const key = getLessonKey(child, week, lessonId);
+    function updateLessonField(child, day, lessonId, field, value) {
+        const key = getLessonKey(child, day, lessonId);
         db.ref(`lessons/${key}/${field}`).set(value);
     }
     
-    function scheduleSave(child, week, lessonId, field, value) {
-        const timeoutKey = `${child}_${week}_${lessonId}_${field}`;
+    function scheduleSave(child, day, lessonId, field, value) {
+        const timeoutKey = `${child}_${day}_${lessonId}_${field}`;
         if (saveTimeouts[timeoutKey]) clearTimeout(saveTimeouts[timeoutKey]);
-        saveTimeouts[timeoutKey] = setTimeout(() => { updateLessonField(child, week, lessonId, field, value); delete saveTimeouts[timeoutKey]; }, 800);
+        saveTimeouts[timeoutKey] = setTimeout(() => { updateLessonField(child, day, lessonId, field, value); delete saveTimeouts[timeoutKey]; }, 800);
     }
 
-    function deleteLesson(child, week, lessonId) {
-        const key = getLessonKey(child, week, lessonId);
+    function deleteLesson(child, day, lessonId) {
+        const key = getLessonKey(child, day, lessonId);
         deleteLessonFromDB(key);
         setTimeout(() => {
-            const lessons = getLessonsForWeek(child, week);
+            const lessons = getLessonsForDay(child, day);
             let index = 1;
             for(let l of lessons) {
                 if(l.lesson.lessonNumber !== index) db.ref(`lessons/${l.key}/lessonNumber`).set(index);
@@ -584,14 +613,11 @@
 
     function renderSchedule() {
         const container = document.getElementById('lessonsContainer');
-        if(!container || !currentWeek) {
-            if(container) container.innerHTML = '<p>Загрузка...</p>';
-            return;
-        }
-        const lessons = getLessonsForWeek(currentChild, currentWeek);
+        if(!container) return;
+        const lessons = getLessonsForDay(currentChild, currentDay);
         
         if(lessons.length === 0) {
-            container.innerHTML = `<p>Нет уроков на эту неделю. <button class="btn-primary" id="addFirstLessonBtn">+ Добавить первый урок</button></p>`;
+            container.innerHTML = `<p>Нет уроков на этот день. <button class="btn-primary" id="addFirstLessonBtn">+ Добавить первый урок</button></p>`;
             const btn = document.getElementById('addFirstLessonBtn');
             if(btn) btn.onclick = () => addNewLesson();
             return;
@@ -648,17 +674,17 @@
             const field = el.dataset.field;
             const lessonId = el.dataset.lessonId;
             if(el.type === 'checkbox') {
-                el.addEventListener('change', (e) => { updateLessonField(currentChild, currentWeek, lessonId, field, e.target.checked); });
+                el.addEventListener('change', (e) => { updateLessonField(currentChild, currentDay, lessonId, field, e.target.checked); });
             } else if(el.tagName === 'SELECT') {
-                el.addEventListener('change', (e) => { updateLessonField(currentChild, currentWeek, lessonId, field, e.target.value); });
+                el.addEventListener('change', (e) => { updateLessonField(currentChild, currentDay, lessonId, field, e.target.value); });
             } else {
-                el.addEventListener('input', (e) => { scheduleSave(currentChild, currentWeek, lessonId, field, e.target.value); });
-                el.addEventListener('blur', (e) => { updateLessonField(currentChild, currentWeek, lessonId, field, e.target.value); });
+                el.addEventListener('input', (e) => { scheduleSave(currentChild, currentDay, lessonId, field, e.target.value); });
+                el.addEventListener('blur', (e) => { updateLessonField(currentChild, currentDay, lessonId, field, e.target.value); });
             }
         });
         
         document.querySelectorAll('[data-delete-lesson]').forEach(btn => {
-            btn.addEventListener('click', () => { if(confirm('Удалить урок?')) deleteLesson(currentChild, currentWeek, btn.dataset.deleteLesson); });
+            btn.addEventListener('click', () => { if(confirm('Удалить урок?')) deleteLesson(currentChild, currentDay, btn.dataset.deleteLesson); });
         });
         
         const addBtn = document.getElementById('addLessonBtn');
@@ -707,8 +733,8 @@
         const averages = computeAveragesForChild(child);
         const allLessons = Object.entries(lessonsData).filter(([key]) => key.startsWith(child));
         let html = `<html><head><title>Оценки - ${child}</title><style>body{font-family:system-ui;padding:20px;} table{border-collapse:collapse;width:100%;} th,td{border:1px solid #cbd5e1;padding:8px;} th{background:#eef2ff;}</style></head><body>
-            <h1>📊 Дневник: ${child}</h1><h3>Средний балл</h3><table><th>Предмет</th><th>Средний балл</th><th>Кол-во</th><tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>
-            <h3>Все оценки</h3><table><th>Дата</th><th>Предмет</th><th>Тема</th><th>Оценка</th></tr>${allLessons.filter(([_,l]) => l.grade).map(([key,l]) => `<tr><td>${key.split('_')[1]}</td><td>${l.subject}</td><td>${l.topic}</td><td>${l.grade}</td></tr>`).join('')}</tr></body></html>`;
+            <h1>📊 Дневник: ${child}</h1><h3>Средний балл</h3><tr><th>Предмет</th><th>Средний балл</th><th>Кол-во</th></tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>
+            <h3>Все оценки</h3><table><th>День</th><th>Предмет</th><th>Тема</th><th>Оценка</th></tr>${allLessons.filter(([_,l]) => l.grade).map(([key,l]) => `<tr><td>${key.split('_')[1]}</td><td>${l.subject}</td><td>${l.topic}</td><td>${l.grade}</td></tr>`).join('')}</table></body></html>`;
         const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
     }
     
@@ -716,15 +742,15 @@
         let html = `<html><head><title>Сводные оценки</title><style>body{font-family:system-ui;padding:20px;} table{border-collapse:collapse;width:100%;} th,td{border:1px solid #cbd5e1;padding:8px;} th{background:#eef2ff;}</style></head><body><h1>📊 Сводный отчёт</h1>`;
         for(let child of children) {
             const averages = computeAveragesForChild(child);
-            html += `<h2>${child}</h2><table><tr><th>Предмет</th><th>Средний балл</th><th>Кол-во</th></tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</table>`;
+            html += `<h2>${child}</h2><tr><th>Предмет</th><th>Средний балл</th><th>Кол-во</th></tr>${averages.map(a => `<tr><td>${a.subject}</td><td>${a.avg}</td><td>${a.count}</td></tr>`).join('')}</tr>`;
         }
         html += `</body></html>`;
         const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.print();
     }
 
-    // ========== РЕЗЕРВНОЕ КОПИРОВАНИЕ И ВОССТАНОВЛЕНИЕ ==========
+    // ========== РЕЗЕРВНОЕ КОПИРОВАНИЕ ==========
     function backupData() {
-        const allData = { lessons: lessonsData, lizaTasks: lizaTasks, subjects: subjects, materials: materialsData, backupDate: new Date().toISOString() };
+        const allData = { lessons: lessonsData, lizaTasks: lizaTasks, subjects: subjects, materials: materialsData, archive: archiveData, backupDate: new Date().toISOString() };
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([JSON.stringify(allData, null, 2)], {type:'application/json'}));
         a.download = `family_diary_backup_${new Date().toISOString().slice(0,19)}.json`;
@@ -737,20 +763,13 @@
             try {
                 const restored = JSON.parse(e.target.result);
                 if (confirm('Восстановление данных заменит текущие записи. Продолжить?')) {
-                    document.getElementById('lessonsContainer').innerHTML = '<p>⏳ Восстановление и конвертация данных...</p>';
-                    
-                    // Конвертируем старые ключи в новый формат
-                    let convertedLessons = {};
-                    if (restored.lessons) {
-                        convertedLessons = convertOldDataToNew(restored.lessons);
-                    }
-                    
+                    document.getElementById('lessonsContainer').innerHTML = '<p>⏳ Восстановление данных...</p>';
                     const promises = [];
-                    promises.push(db.ref('lessons').set(convertedLessons));
-                    promises.push(db.ref('lizaTasks').set(restored.lizaTasks || []));
+                    if (restored.lessons) promises.push(db.ref('lessons').set(restored.lessons));
+                    if (restored.lizaTasks) promises.push(db.ref('lizaTasks').set(restored.lizaTasks));
                     if (restored.subjects) promises.push(db.ref('subjects').set(restored.subjects));
                     if (restored.materials) promises.push(db.ref('materials').set(restored.materials));
-                    
+                    if (restored.archive) promises.push(db.ref('archive').set(restored.archive));
                     Promise.all(promises).then(() => {
                         alert('✅ Данные восстановлены! Страница будет обновлена.');
                         setTimeout(() => window.location.reload(), 1500);
@@ -762,14 +781,16 @@
     }
     
     function clearAllData() {
-        if (confirm('ВНИМАНИЕ! Это удалит ВСЕ данные (уроки, оценки, материалы). Отменить невозможно. Продолжить?')) {
+        if (confirm('ВНИМАНИЕ! Это удалит ВСЕ данные (уроки, оценки, материалы, архив). Отменить невозможно. Продолжить?')) {
             if (confirm('Последнее предупреждение! ВСЕ ДАННЫЕ БУДУТ УДАЛЕНЫ. Вы уверены?')) {
                 document.getElementById('lessonsContainer').innerHTML = '<p>⏳ Удаление данных...</p>';
                 Promise.all([
                     db.ref('lessons').set({}),
                     db.ref('lizaTasks').set([]),
-                    db.ref('materials').set({})
+                    db.ref('materials').set({}),
+                    db.ref('archive').set({})
                 ]).then(() => {
+                    localStorage.removeItem('lastWeekKey');
                     alert('✅ Все данные удалены. Страница будет обновлена.');
                     setTimeout(() => window.location.reload(), 1500);
                 }).catch(err => alert('❌ Ошибка: ' + err.message));
@@ -778,51 +799,16 @@
     }
 
     // ========== ВКЛАДКИ ==========
-    function renderWeekTabs() {
-        const container = document.getElementById('weekTabs');
-        if(!container) return;
-        const weeks = getAllWeeksForChild(currentChild);
-        let displayWeeks = weeks;
-        if(!showArchive) displayWeeks = weeks.filter(w => !isWeekArchived(w));
-        if(displayWeeks.length === 0) { container.innerHTML = '<p>Нет недель</p>'; return; }
-        
-        container.innerHTML = displayWeeks.map(week => {
-            const { start, end } = getWeekInfo(week);
-            const isActive = currentWeek === week;
-            const isArch = isWeekArchived(week);
-            return `<button class="week-btn ${isActive ? 'active' : ''} ${isArch ? 'archive' : ''}" data-week="${week}">📅 ${formatDate(start)}-${formatDate(end)}</button>`;
-        }).join('');
-        
-        document.querySelectorAll('#weekTabs [data-week]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                currentWeek = btn.dataset.week;
-                renderWeekTabs();
-                renderDayTabs();
-                renderSchedule();
-            });
-        });
-    }
-    
     function renderDayTabs() {
         const container = document.getElementById('dayTabs');
-        if(!container || !currentWeek) return;
-        
-        const days = [];
-        for(let i = 0; i < 5; i++) {
-            const date = getDayDate(currentWeek, i);
-            const dayName = dayNames[i];
-            const dateStr = formatDate(date);
-            days.push({ name: dayName, dateStr, index: i });
-        }
-        
-        container.innerHTML = days.map(day => {
-            const isActive = currentDayIndex === day.index;
-            return `<button class="day-btn ${isActive ? 'active' : ''}" data-day-index="${day.index}">${day.name}<br><small>${day.dateStr}</small></button>`;
+        if(!container) return;
+        container.innerHTML = dayNames.map(day => {
+            const isActive = currentDay === day;
+            return `<button class="day-btn ${isActive ? 'active' : ''}" data-day="${day}">${day}</button>`;
         }).join('');
-        
-        document.querySelectorAll('#dayTabs [data-day-index]').forEach(btn => {
+        document.querySelectorAll('#dayTabs [data-day]').forEach(btn => {
             btn.addEventListener('click', () => {
-                currentDayIndex = parseInt(btn.dataset.dayIndex);
+                currentDay = btn.dataset.day;
                 renderDayTabs();
                 renderSchedule();
             });
@@ -834,19 +820,12 @@
         if(!container) return;
         container.innerHTML = children.map(child => `<button class="tab-btn ${child === currentChild ? 'active' : ''}" data-child="${child}">${child}</button>`).join('');
         document.querySelectorAll('#childTabs [data-child]').forEach(btn => btn.addEventListener('click', () => { 
-            const newChild = btn.dataset.child;
-            if (newChild !== currentChild) {
-                currentChild = newChild;
-                const weeks = getAllWeeksForChild(currentChild);
-                currentWeek = weeks[0] || getCurrentWeekKey();
-                currentDayIndex = 0;
-                renderChildTabs();
-                renderWeekTabs();
-                renderDayTabs();
-                renderSchedule();
-                renderLizaTasksVisibility();
-                renderGrades();
-            }
+            currentChild = btn.dataset.child;
+            renderChildTabs();
+            renderDayTabs();
+            renderSchedule();
+            renderLizaTasksVisibility();
+            renderGrades();
         }));
     }
     
@@ -858,6 +837,17 @@
             currentChild = btn.dataset.dchild;
             renderDebtsChildTabs();
             renderDebts();
+        }));
+    }
+    
+    function renderArchiveChildTabs() {
+        const container = document.getElementById('archiveChildTabs');
+        if(!container) return;
+        container.innerHTML = children.map(child => `<button class="tab-btn ${child === currentChild ? 'active' : ''}" data-archchild="${child}">${child}</button>`).join('');
+        document.querySelectorAll('#archiveChildTabs [data-archchild]').forEach(btn => btn.addEventListener('click', () => { 
+            currentChild = btn.dataset.archchild;
+            renderArchiveChildTabs();
+            renderArchiveLessons();
         }));
     }
     
@@ -883,26 +873,33 @@
         currentMainTab = tab;
         const diaryTab = document.getElementById('diaryTab');
         const debtsTab = document.getElementById('debtsTab');
+        const archiveTab = document.getElementById('archiveTab');
         const materialsTab = document.getElementById('materialsTab');
+        
         if(tab === 'diary') {
             diaryTab.style.display = 'block';
             debtsTab.style.display = 'none';
+            archiveTab.style.display = 'none';
             materialsTab.style.display = 'none';
-            if(!currentWeek) {
-                const weeks = getAllWeeksForChild(currentChild);
-                currentWeek = weeks[0] || getCurrentWeekKey();
-                currentDayIndex = 0;
-            }
             renderAll();
         } else if(tab === 'debts') {
             diaryTab.style.display = 'none';
             debtsTab.style.display = 'block';
+            archiveTab.style.display = 'none';
             materialsTab.style.display = 'none';
             renderDebtsChildTabs();
             renderDebts();
+        } else if(tab === 'archive') {
+            diaryTab.style.display = 'none';
+            debtsTab.style.display = 'none';
+            archiveTab.style.display = 'block';
+            materialsTab.style.display = 'none';
+            renderArchiveChildTabs();
+            renderArchiveList();
         } else {
             diaryTab.style.display = 'none';
             debtsTab.style.display = 'none';
+            archiveTab.style.display = 'none';
             materialsTab.style.display = 'block';
             renderMaterialsChildTabs();
             renderMaterials();
@@ -914,7 +911,6 @@
     function renderAll() {
         if(currentMainTab === 'diary') {
             renderChildTabs();
-            renderWeekTabs();
             renderDayTabs();
             renderSchedule();
             renderLizaTasksVisibility();
@@ -936,9 +932,10 @@
     document.getElementById('backupBtn').onclick = backupData;
     document.getElementById('restoreBtn').onclick = () => document.getElementById('restoreFileInput').click();
     document.getElementById('clearAllBtn').onclick = clearAllData;
+    document.getElementById('forceNewWeekBtn').onclick = forceNewWeek;
     document.getElementById('restoreFileInput').onchange = (e) => { if(e.target.files[0]) restoreData(e.target.files[0]); e.target.value = ''; };
     document.getElementById('addLizaTaskBtn').onclick = addLizaTask;
-    document.getElementById('showArchiveBtn').onclick = () => { showArchive = !showArchive; renderWeekTabs(); };
+    document.getElementById('showAllArchiveBtn').onclick = () => { renderArchiveList(); };
     
     document.getElementById('addLinkBtn').onclick = () => {
         const title = document.getElementById('newLinkTitle').value.trim();
@@ -969,9 +966,6 @@
     });
     
     // ИНИЦИАЛИЗАЦИЯ
-    const weeks = getAllWeeksForChild(currentChild);
-    currentWeek = weeks[0] || getCurrentWeekKey();
-    currentDayIndex = 0;
     loadAllData();
 </script>
 </body>
